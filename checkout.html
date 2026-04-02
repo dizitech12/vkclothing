@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Securely complete your purchase at VK Clothing. Enter your shipping and payment details for a seamless checkout experience.">
+  <meta name="keywords" content="VK Clothing Checkout, Secure Payment, Shipping Details, Place Order">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <title>Secure Checkout | VK Clothing</title>
+  <!-- Change version number when updating files to force reload -->
+  <link rel="stylesheet" href="css/style.css?????v=6">
+  <style>
+    .checkout-container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 40px;
+    }
+    @media (max-width: 768px) {
+      .checkout-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .checkout-flow {
+      background: var(--color-bg);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      border: 1px solid var(--color-border-light);
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .step-number {
+      width: 32px;
+      height: 32px;
+      background: var(--color-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      margin-right: 16px;
+    }
+    .step-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .step-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    .step-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .address-card {
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .address-card:hover {
+      border-color: #999;
+    }
+    .address-card.selected {
+      border-color: var(--color-primary);
+      background: rgba(0,0,0,0.02);
+    }
+    .address-card h4 {
+      margin-bottom: 8px;
+    }
+    .address-card p {
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    .payment-option {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .payment-option.selected {
+      border-color: var(--color-primary);
+      background: rgba(0,0,0,0.02);
+    }
+    .payment-option input {
+      margin-right: 16px;
+      transform: scale(1.2);
+    }
+    .payment-option span {
+      font-weight: 600;
+    }
+    
+    /* Order Summary Sidebar */
+    .order-summary-sidebar {
+      background: var(--color-bg-soft);
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      height: fit-content;
+      position: sticky;
+      top: 100px;
+    }
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .summary-item.total {
+      font-size: 1.1rem;
+      font-weight: 700;
+      border-top: 1px solid var(--color-border);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    .summary-product {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px dashed var(--color-border-light);
+    }
+    .summary-product img {
+      width: 60px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-right: 16px;
+    }
+    .summary-product-info h5 {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    .summary-product-info p {
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+    }
+    
+    .nav-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Minimal Header -->
+  <header class="navbar" id="navbar">
+    <div class="container navbar-container" style="justify-content: space-between;">
+      <a href="index.html" class="logo">VKclothing</a>
+      <a href="cart.html" style="font-weight:600; text-decoration:none; color:var(--color-text);">Return to Cart</a>
+    </div>
+  </header>
+
+  <main style="padding-top: 80px; background:#fcfcfc; min-height:100vh;">
+    
+    <div class="checkout-container">
+      
+      <!-- Checkout Flow -->
+      <div class="checkout-flow">
+        
+        <!-- STEP 1: Shipping -->
+        <div id="step-1" class="step-content active">
+          <div class="step-header">
+            <div class="step-number">1</div>
+            <h2 class="step-title">Shipping Address</h2>
+          </div>
+          
+          <div id="saved-addresses-container">
+            <div class="loading-spinner"></div>
+          </div>
+
+          <div style="margin-top: 24px; display:none;" id="new-address-form-container">
+            <h3>Add New Address</h3>
+            <form id="new-address-form" style="margin-top:16px;">
+              <div class="form-row" style="display:flex;gap:16px;">
+                <div class="form-group" style="flex:1;"><label>First Name</label><input type="text" id="addr-fname" required></div>
+                <div class="form-group" style="flex:1;"><label>Last Name</label><input type="text" id="addr-lname" required></div>
+              </div>
+              <div class="form-group"><label>Phone Number (for delivery)</label><input type="tel" id="addr-phone" required></div>
+              <div class="form-group"><label>Address Line 1</label><input type="text" id="addr-line1" required></div>
+              <div class="form-group"><label>Address Line 2 (Optional)</label><input type="text" id="addr-line2"></div>
+              <div class="form-row" style="display:flex;gap:16px;">
+                <div class="form-group" style="flex:1;"><label>City</label><input type="text" id="addr-city" required></div>
+                <div class="form-group" style="flex:1;"><label>State</label><input type="text" id="addr-state" required></div>
+              </div>
+              <div class="form-row" style="display:flex;gap:16px;">
+                <div class="form-group" style="flex:1;"><label>PIN Code</label><input type="text" id="addr-zip" required></div>
+                <div class="form-group" style="flex:1;"><label>Country</label><input type="text" id="addr-country" value="India" readonly></div>
+              </div>
+              <button type="submit" class="btn btn-outline" id="save-address-btn" style="width:100%;">Save Address</button>
+            </form>
+          </div>
+
+          <div class="nav-buttons">
+            <button class="btn btn-primary" onclick="goToStep(2)" style="margin-left:auto;" id="btn-to-payment">Continue to Payment</button>
+          </div>
+        </div>
+
+        <!-- STEP 2: Payment -->
+        <div id="step-2" class="step-content">
+          <div class="step-header">
+            <div class="step-number">2</div>
+            <h2 class="step-title">Payment Method</h2>
+          </div>
+          
+          <div class="payment-options">
+            <label class="payment-option selected" id="opt-cod" onclick="selectPayment('COD')">
+              <input type="radio" name="payment" value="COD" checked>
+              <span>Cash on Delivery (COD)</span>
+            </label>
+            <label class="payment-option" id="opt-upi" onclick="selectPayment('UPI')">
+              <input type="radio" name="payment" value="UPI">
+              <div style="display:flex;flex-direction:column;">
+                <span>UPI Payment (QR Code)</span>
+                <span style="font-size:0.8rem;color:var(--color-text-muted);font-weight:400;margin-top:4px;">Scan to pay instantly.</span>
+              </div>
+            </label>
+          </div>
+
+          <div id="upi-qr-container" style="display:none; text-align:center; padding:24px; background:#f9f9f9; border-radius:8px; margin-top:16px;">
+             <p style="margin-bottom:16px; font-weight:600;">Scan QR with any UPI App (GPay, PhonePe, Paytm)</p>
+             <img id="upi-qr-image" src="" alt="UPI QR Code" style="width:200px; height:200px; padding:10px; background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+             <p style="margin-top:16px; color:#666; font-size:0.9rem;">Amount: ₹<span id="upi-amount"></span></p>
+          </div>
+
+          <div class="nav-buttons">
+            <button class="btn btn-outline" onclick="goToStep(1)">Back</button>
+            <button class="btn btn-primary" onclick="goToStep(3)">Review Order</button>
+          </div>
+        </div>
+
+        <!-- STEP 3: Summary -->
+        <div id="step-3" class="step-content">
+          <div class="step-header">
+            <div class="step-number">3</div>
+            <h2 class="step-title">Order Confirmation</h2>
+          </div>
+          
+          <div style="background:var(--color-bg-soft); padding:24px; border-radius:var(--radius-md); margin-bottom:24px;">
+            <p><strong>Shipping To:</strong> <span id="confirm-address" style="color:#666;margin-left:8px;"></span></p>
+            <p style="margin-top:12px;"><strong>Payment Method:</strong> <span id="confirm-payment" style="color:#666;margin-left:8px;"></span></p>
+          </div>
+
+          <div id="upi-confirm-container" style="display:none; background:#f0f9ff; padding:16px; border-radius:var(--radius-md); margin-bottom:24px; border:1px solid #bae6fd;">
+            <label style="display:flex; align-items:center; cursor:pointer;">
+              <input type="checkbox" id="upi-confirm-checkbox" style="margin-right:12px; transform:scale(1.2);">
+              <span><strong>I confirm that I have successfully scanned the QR code and paid ₹<span id="upi-confirm-amount"></span> via UPI.</strong></span>
+            </label>
+          </div>
+
+          <div id="checkout-error" class="form-message" style="display:none;"></div>
+
+          <div class="nav-buttons" style="border-top:1px solid var(--color-border); padding-top:24px;">
+            <button class="btn btn-outline" onclick="goToStep(2)">Back</button>
+            <button class="btn btn-primary" id="place-order-btn" onclick="placeOrder()">Place Order</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Order Summary -->
+      <div class="order-summary-sidebar">
+        <h3 style="margin-bottom: 24px;">Order Summary</h3>
+        <div id="sidebar-products">
+          <!-- Populated by JS -->
+        </div>
+        
+        <div class="price-row">
+          <span>Subtotal</span>
+          <span id="checkout-subtotal">₹0</span>
+        </div>
+
+        <div class="price-row">
+          <span>Delivery Fee</span>
+          <span>
+            <span class="free-text">FREE</span>
+            <span class="strike">₹49</span>
+          </span>
+        </div>
+
+        <div class="price-row">
+          <span>Platform Fee</span>
+          <span class="free-text">FREE</span>
+        </div>
+
+        <hr>
+
+        <div class="price-row total-row">
+          <span>Total</span>
+          <span id="checkout-total">₹0</span>
+        </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <script src="js/config.js?????v=6"></script>
+  <script src="js/ui-utils.js?????v=6"></script>
+  <script src="js/api.js?????v=6"></script>
+  <script src="js/auth.js?????v=6"></script>
+  <script src="js/app.js?????v=6"></script>
+  <script src="js/checkout.js?????v=6"></script>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom">
+        
+        <div class="footer-policies" style="margin-bottom: 15px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center; opacity:0.8; font-size:0.85rem;">
+          <a href="refund-policy.html">Refund Policy</a>
+          <a href="shipping-policy.html">Shipping Policy</a>
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="terms.html">Terms & Conditions</a>
+        </div>
+        <div style="text-align:center; opacity:0.6; font-size:0.8rem;">&copy; 2026 VKclothing. All rights reserved.</div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

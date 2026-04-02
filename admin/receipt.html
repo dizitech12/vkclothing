@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delivery Invoice</title>
+  <style>
+    :root {
+      --font-family: 'Inter', -apple-system, sans-serif;
+      --text-color: #1a1a1a;
+      --border-color: #e5e5e5;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      color: var(--text-color);
+      background: #f9fafb;
+      padding: 40px;
+    }
+
+    .receipt-container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 40px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border-color);
+    }
+
+    /* Header */
+    .r-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 2px solid #000;
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+
+    .brand-section h1 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px;
+    }
+
+    .brand-details {
+      font-size: 13px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .invoice-title {
+      text-align: right;
+    }
+
+    .invoice-title h2 {
+      font-size: 28px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #000;
+      margin-bottom: 8px;
+    }
+
+    .invoice-meta {
+      font-size: 13px;
+    }
+
+    .invoice-meta strong {
+      display: inline-block;
+      width: 70px;
+    }
+
+    /* Bill To */
+    .bill-to {
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      border-radius: 4px;
+      margin-bottom: 32px;
+      width: 50%;
+    }
+
+    .bill-to h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .customer-info p {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .customer-info strong {
+      font-size: 15px;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    /* Table */
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 32px;
+    }
+
+    .items-table th {
+      background: #f9fafb;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #666;
+      padding: 12px;
+      text-align: left;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .items-table td {
+      padding: 16px 12px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .items-table th.num,
+    .items-table td.num {
+      text-align: right;
+    }
+
+    /* Summary */
+    .summary-section {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 40px;
+    }
+
+    .summary-box {
+      width: 300px;
+    }
+
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+
+    .summary-row.total {
+      border-top: 2px solid #000;
+      margin-top: 8px;
+      padding-top: 16px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .free-text {
+      color: #28a745;
+      font-weight: 600;
+      margin-right: 4px;
+    }
+
+    .strike {
+      text-decoration: line-through;
+      color: #999;
+      font-size: 0.9em;
+    }
+
+    .product-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .product-img {
+      width: 50px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+    }
+
+    /* Payment & Status */
+    .payment-info {
+      background: #f9fafb;
+      padding: 20px;
+      border-radius: 4px;
+      margin-bottom: 40px;
+      display: flex;
+      gap: 40px;
+    }
+
+    .p-group h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .p-group p {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+      border-top: 1px solid var(--border-color);
+      padding-top: 24px;
+    }
+
+    /* Actions */
+    .actions-bar {
+      max-width: 800px;
+      margin: 0 auto 20px auto;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-print {
+      background: #000;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Loader */
+    #loading {
+      text-align: center;
+      padding: 40px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .receipt-container {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+      }
+
+      .actions-bar {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="actions-bar">
+    <button class="btn-print" onclick="window.print()">Print Invoice</button>
+  </div>
+
+  <div id="loading">Loading invoice data...</div>
+
+  <div class="receipt-container" id="receipt-content" style="display:none;">
+
+    <!-- Header -->
+    <div class="r-header">
+      <div class="brand-section">
+        <img id="b-logo" src="../assets/images/favicon.png" alt="Company Logo"
+          style="max-height: 60px; margin-bottom: 12px; display: block;">
+        <h1 id="b-name">Brand Name</h1>
+        <div class="brand-details">
+          <p id="b-address">Address Line</p>
+          <p id="b-phone">Phone</p>
+          <p id="b-email">Email</p>
+        </div>
+      </div>
+      <div class="invoice-title">
+        <h2>DELIVERY INVOICE</h2>
+        <div class="invoice-meta">
+          <p><strong>Order No:</strong> <span id="inv-no"></span></p>
+          <p><strong>Date:</strong> <span id="inv-date"></span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bill To -->
+    <div class="bill-to">
+      <h3>Bill To</h3>
+      <div class="customer-info">
+        <strong id="c-name">Customer Name</strong>
+        <p id="c-phone">Phone</p>
+        <p id="c-address">Address</p>
+        <p id="c-city-state"></p>
+        <p id="c-country"></p>
+      </div>
+    </div>
+
+    <!-- Items -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Sl No</th>
+          <th>Product Details</th>
+          <th class="num">Qty</th>
+          <th class="num">Price</th>
+          <th class="num">Amount</th>
+        </tr>
+      </thead>
+      <tbody id="items-tbody">
+        <!-- Rendered via JS -->
+      </tbody>
+    </table>
+
+    <!-- Summary -->
+    <div class="summary-section">
+      <div class="summary-box">
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span id="s-subtotal">₹0</span>
+        </div>
+        <div class="summary-row">
+          <span>Delivery Fee</span>
+          <span>
+            <span class="free-text">FREE</span>
+            <span class="strike">₹49</span>
+          </span>
+        </div>
+        <div class="summary-row">
+          <span>Platform Fee</span>
+          <span class="free-text">FREE</span>
+        </div>
+        <hr style="margin: 10px 0; border: none; border-top: 1px solid var(--border-color);">
+        <div class="summary-row total">
+          <span>TOTAL</span>
+          <span id="s-total">₹0</span>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- Footer -->
+    <div class="footer">
+      <p id="f-msg">Thank you for shopping with us!</p>
+    </div>
+
+  </div>
+
+  <script src="../js/config.js?v=5"></script>
+  <script src="../js/api.js?v=5"></script>
+  <script src="../js/receipt.js?v=5"></script>
+</body>
+
+</html>

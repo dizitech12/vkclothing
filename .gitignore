@@ -1,0 +1,20 @@
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Secrets (KEEPING PRIVATE)
+js/config.js
+
+# Google Apps Script (OPTIONAL: Uncomment if you want to keep your GAS backend private)
+# google-apps-script/Code.gs
+
+# Dependencies (if any)
+node_modules/
+package-lock.json
+vendor/
+.env
+.env.*

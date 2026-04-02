@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Admin login — VKclothing management panel.">
+  <title>Admin Login — VKclothing</title>
+  <!-- Change version number when updating files to force reload -->
+  <link rel="stylesheet" href="../css/style.css?v=2">
+</head>
+<body>
+
+  <!-- Admin Login -->
+  <section class="form-page" style="background:var(--color-bg-soft);">
+    <div class="form-card">
+      <h1>Admin Panel</h1>
+      <p class="form-subtitle">Sign in to manage your store</p>
+
+      <div id="admin-login-message" class="form-message"></div>
+
+      <form id="admin-login-form" onsubmit="return false;">
+        <div class="form-group">
+          <label for="admin-email">Email</label>
+          <input type="email" id="admin-email" placeholder="admin@vkclothing.com" required>
+        </div>
+        <div class="form-group">
+          <label for="admin-password">Password</label>
+          <input type="password" id="admin-password" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-primary" id="admin-login-btn" style="width:100%;margin-top:8px;">
+          Sign In
+        </button>
+      </form>
+
+      <p style="text-align:center;margin-top:24px;font-size:0.85rem;color:var(--color-text-muted);">
+        <a href="../index.html" style="text-decoration:underline;">← Back to Store</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- Route normaliser: /admin → /admin/index.html (fixes ngrok/production loops) -->
+  <script>
+    if (window.location.pathname.endsWith('/admin') || window.location.pathname.endsWith('/admin/')) {
+      window.location.replace('index.html');
+    }
+  </script>
+  <script src="../js/config.js?v=2"></script>
+  <script src="../js/ui-utils.js?v=2"></script>
+  <script src="../js/api.js?v=2"></script>
+  <script>
+    // Only auto-redirect when we are definitely on the login page
+    const _token = sessionStorage.getItem('vk_admin_token');
+    if (_token && window.location.pathname.endsWith('index.html')) {
+      window.location.replace('dashboard.html');
+    }
+
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById('admin-email').value.trim();
+      const password = document.getElementById('admin-password').value;
+      const msgEl = document.getElementById('admin-login-message');
+      const btn = document.getElementById('admin-login-btn');
+
+      if (!email || !password) {
+        msgEl.textContent = 'Please fill in all fields.';
+        msgEl.className = 'form-message error';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      try {
+        const result = await API.loginAdmin(email, password);
+
+        if (result.success) {
+          sessionStorage.setItem('vk_admin_token', result.token);
+          sessionStorage.setItem('vk_admin_email', email);
+
+          msgEl.textContent = 'Login successful! Redirecting...';
+          msgEl.className = 'form-message success';
+          msgEl.style.display = 'block';
+
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 800);
+        } else {
+          msgEl.textContent = result.error || 'Invalid credentials.';
+          msgEl.className = 'form-message error';
+          msgEl.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+        }
+      } catch (err) {
+        msgEl.textContent = 'Connection error. Please try again.';
+        msgEl.className = 'form-message error';
+        msgEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+  </script>
+</body>
+</html>

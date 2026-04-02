@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Admin Dashboard — VKclothing product management.">
+  <title>Dashboard — VKclothing Admin</title>
+  <!-- Change version number when updating files to force reload -->
+  <link rel="stylesheet" href="../css/style.css?v=2">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Admin Header -->
+  <header class="admin-header">
+    <div class="container">
+      <h1>VKclothing Admin</h1>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <span id="admin-email" style="font-size:0.85rem;opacity:0.8;"></span>
+        <button class="btn btn-sm" style="background:rgba(255,255,255,0.15);color:#fff;" onclick="adminLogout()">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Dashboard -->
+  <main class="admin-dashboard">
+    <div class="container">
+
+          <!-- Tab Navigation -->
+      <div class="filter-bar" style="justify-content:flex-start;margin-bottom:32px;">
+        <button class="filter-btn active" data-tab="products" onclick="switchTab('products')">Products</button>
+        <button class="filter-btn" data-tab="orders" onclick="switchTab('orders')">Orders</button>
+        <button class="filter-btn" data-tab="analytics" onclick="switchTab('analytics')">Analytics</button>
+      </div>
+
+      <!-- Analytics Tab -->
+      <div id="analytics-tab" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
+          <h2 style="font-size:1.4rem; font-weight:600; margin:0;">Analytics Overview</h2>
+          <button onclick="loadAnalyticsDashboard(true)" class="btn btn-outline" style="padding:8px 16px; font-size:0.9rem; display:flex; gap:8px; align-items:center;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            Refresh Data
+          </button>
+        </div>
+
+        <div id="analytics-loading" style="display:none; text-align:center; padding:100px 0;">
+          <div class="loading-spinner"></div>
+          <p style="margin-top:16px; color:var(--color-text-secondary);">Updating analytics...</p>
+        </div>
+
+        <div id="analytics-content">
+          <div id="analytics-cards" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:32px;">
+          <div class="analytics-card" style="background:#fff; padding:20px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light);">
+            <div style="font-size:0.85rem; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:8px;">Total Orders</div>
+            <div id="stat-total-orders" style="font-size:1.8rem; font-weight:700;">-</div>
+          </div>
+          <div class="analytics-card" style="background:#fff; padding:20px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light);">
+            <div style="font-size:0.85rem; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:8px;">Total Revenue</div>
+            <div id="stat-total-revenue" style="font-size:1.8rem; font-weight:700;">-</div>
+          </div>
+          <div class="analytics-card" style="background:#fff; padding:20px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light);">
+            <div style="font-size:0.85rem; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:8px;">Total Customers</div>
+            <div id="stat-total-customers" style="font-size:1.8rem; font-weight:700;">-</div>
+          </div>
+          <div class="analytics-card" style="background:#fff; padding:20px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light);">
+            <div style="font-size:0.85rem; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:8px;">Total Products</div>
+            <div id="stat-total-products" style="font-size:1.8rem; font-weight:700;">-</div>
+          </div>
+          <div class="analytics-card" style="background:#fff; padding:20px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light);">
+            <div style="font-size:0.85rem; color:var(--color-text-secondary); text-transform:uppercase; margin-bottom:8px;">Best Selling</div>
+            <div id="stat-best-selling" style="font-size:1.1rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="Loading...">-</div>
+          </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr)); gap:24px; margin-bottom:32px;">
+          <!-- Weekly Sales Chart -->
+          <div class="chart-card" style="background:#fff; padding:24px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light);">
+            <h3 style="font-size:1rem; margin-bottom:16px; color:var(--color-text-primary);">Weekly Sales (Revenue)</h3>
+            <canvas id="weekly-sales-chart"></canvas>
+          </div>
+
+          <!-- Orders per Day Chart -->
+          <div class="chart-card" style="background:#fff; padding:24px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light);">
+            <h3 style="font-size:1rem; margin-bottom:16px; color:var(--color-text-primary);">Orders per Day</h3>
+            <canvas id="orders-per-day-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Customer Growth Chart -->
+          <div class="chart-card" style="background:#fff; padding:24px; border-radius:var(--radius-md); box-shadow:var(--shadow-sm); border:1px solid var(--color-border-light); max-width:800px;">
+            <h3 style="font-size:1rem; margin-bottom:16px; color:var(--color-text-primary);">Customer Growth (Last 14 Days)</h3>
+            <canvas id="customer-growth-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Tab -->
+      <div id="products-tab">
+        <div class="admin-toolbar">
+          <h2>All Products</h2>
+          <button class="btn btn-primary btn-sm" onclick="openProductModal()">
+            + Add Product
+          </button>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="products-table-body">
+              <tr><td colspan="7"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div id="orders-tab" style="display:none;">
+        <div class="admin-toolbar">
+          <h2>Recent Orders</h2>
+          <button class="btn btn-outline btn-sm" onclick="loadOrders()">↻ Refresh</button>
+        </div>
+
+        <div class="order-filters" style="display:flex; gap:16px; margin-bottom:24px; background:var(--color-bg-soft); padding:16px; border-radius:var(--radius-md); flex-wrap:wrap;">
+          <input type="text" id="order-search-id" placeholder="Search Order ID..." style="flex:1; min-width:150px; padding:8px; border:1px solid #ccc; border-radius:4px;" oninput="renderOrders()">
+          <input type="text" id="order-search-phone" placeholder="Search Phone..." style="flex:1; min-width:150px; padding:8px; border:1px solid #ccc; border-radius:4px;" oninput="renderOrders()">
+          <select id="order-filter-status" style="flex:1; min-width:150px; padding:8px; border:1px solid #ccc; border-radius:4px;" onchange="renderOrders()">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Processed">Processed</option>
+            <option value="Shipped">Shipped</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+          <select id="order-filter-payment" style="flex:1; min-width:150px; padding:8px; border:1px solid #ccc; border-radius:4px;" onchange="renderOrders()">
+            <option value="">All Payment Methods</option>
+            <option value="COD">Cash on Delivery</option>
+            <option value="UPI">UPI</option>
+          </select>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Total</th>
+                <th>Payment</th>
+                <th>Pay Status</th>
+                <th>Order Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orders-table-body">
+              <tr><td colspan="10"><div class="loading-spinner"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Product Modal (Add/Edit) -->
+  <div class="modal-overlay" id="product-modal">
+    <div class="modal">
+      <h2 id="modal-title">Add Product</h2>
+
+      <div id="modal-message" class="form-message"></div>
+
+      <form id="product-form" onsubmit="return false;">
+        <input type="hidden" id="product-id">
+
+        <div class="form-group">
+          <label for="product-name">Product Name</label>
+          <input type="text" id="product-name" placeholder="e.g. Urban Vibes Tee" required>
+        </div>
+
+        <div class="form-group">
+          <label for="product-category">Category</label>
+          <select id="product-category" required>
+            <option value="">Select category</option>
+            <option value="oversized">Oversized T-Shirts</option>
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label for="product-price">Price (₹)</label>
+            <input type="number" id="product-price" placeholder="799" min="0" required>
+          </div>
+          <div class="form-group">
+            <label for="product-description">Description</label>
+            <textarea id="product-description" placeholder="Product description..." style="min-height:80px;"></textarea>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="form-group">
+            <label for="product-sizes">Sizes (comma separated)</label>
+            <input type="text" id="product-sizes" placeholder="S,M,L,XL">
+          </div>
+          <div class="form-group">
+            <label>Colors</label>
+            <div style="display:flex; gap:8px; margin-bottom: 8px;">
+              <input type="color" id="color-hex-input" style="width:40px; height:40px; border:none; padding:0; cursor:pointer;" value="#000000">
+              <input type="text" id="color-name-input" placeholder="Color Name (e.g. Red)" style="flex:1;">
+              <button type="button" class="btn btn-sm" style="background:#000; color:#fff;" onclick="addColor()">Add</button>
+            </div>
+            <div id="color-preview-container" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom: 8px;">
+              <!-- JS will load color pills here -->
+            </div>
+            <input type="text" id="product-colors" placeholder="Black:#000000,White:#ffffff" readonly style="background:#f5f5f5; color:#777; font-size: 0.8rem; padding: 4px 8px;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <button type="button" class="btn btn-sm btn-outline" style="width:100%;margin-bottom:12px;" onclick="generateVariantGrid()">Generate Variant Stock Grid</button>
+          <div id="variant-stock-container" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border-light); padding: 8px; border-radius: 4px; background: #fafafa; display: none;">
+            <!-- JS will populate variants here -->
+          </div>
+        </div>
+
+        <hr style="margin:24px 0; border:none; border-top:1px solid var(--color-border-light);">
+        <h3 style="font-size:1.1rem; margin-bottom:16px;">Product Images</h3>
+
+        <div class="form-group">
+          <label>Main Image (Fallback)</label>
+          <div class="img-upload-area" id="img-upload-area" onclick="document.getElementById('product-image-input').click()">
+            <div id="upload-placeholder">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <p>Click to upload image</p>
+            </div>
+            <img id="upload-preview" class="preview-img" style="display:none;" alt="Preview">
+          </div>
+          <input type="file" id="product-image-input" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+          <input type="hidden" id="product-image-url">
+        </div>
+
+        <div class="form-group">
+          <label>Color Gallery Images</label>
+          <div style="display:flex; gap:8px; margin-bottom: 12px;">
+            <select id="gallery-color-select" style="flex: 1;">
+              <option value="">Select color first...</option>
+            </select>
+            <button type="button" class="btn btn-sm" style="background:#000;color:#fff;" onclick="document.getElementById('gallery-image-input').click()">Add Image</button>
+          </div>
+          <input type="file" id="gallery-image-input" accept="image/*" style="display:none;" onchange="handleGalleryImageUpload(event)">
+          
+          <div id="gallery-preview-container" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:8px;">
+            <!-- JS will populate thumbnails here -->
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" onclick="closeProductModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="save-product-btn">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal" style="max-width:400px;text-align:center;">
+      <h2>Delete Product?</h2>
+      <p style="color:var(--color-text-secondary);margin-bottom:24px;">This action cannot be undone.</p>
+      <div class="modal-actions" style="justify-content:center;">
+        <button class="btn btn-outline" onclick="closeDeleteModal()">Cancel</button>
+        <button class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js?v=2"></script>
+  <script src="../js/ui-utils.js?v=2"></script>
+  <script src="../js/api.js?v=2"></script>
+  <script src="../js/admin.js?v=2"></script>
+</body>
+</html>

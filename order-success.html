@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="assets/images/favicon.png">
+  <title>Order Success | VK Clothing</title>
+  <link rel="stylesheet" href="css/style.css?????v=6">
+  <style>
+    .success-container {
+      max-width: 600px;
+      margin: 80px auto;
+      text-align: center;
+      padding: 40px 20px;
+      background: #fff;
+      border-radius: 8px;
+    }
+    .success-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--color-success, #4caf50);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+    .success-container h1 {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+    .success-container p {
+      color: var(--color-text-secondary, #666);
+      margin-bottom: 8px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    .order-id-box {
+      background: #f9fafb;
+      padding: 16px;
+      border-radius: 4px;
+      margin: 24px 0;
+      font-size: 18px;
+      font-weight: 600;
+      border: 1px dashed var(--color-border, #ccc);
+    }
+    .success-actions {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar" id="navbar">
+    <div class="container">
+      <a href="index.html" class="nav-logo">VKclothing</a>
+      <div class="nav-menu" id="nav-menu">
+        <a href="index.html">Home</a>
+        <a href="shop.html">Shop</a>
+        <a href="contact.html">Contact Us</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="success-container">
+      <div class="success-icon">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h1>Order Placed Successfully!</h1>
+      <p>Thank you for your purchase. We have received your order and will begin processing it right away.</p>
+      
+      <div class="order-id-box" id="order-id-display">
+        Retrieving Order ID...
+      </div>
+
+      <div class="success-actions">
+        <a href="shop.html" class="btn btn-primary">Continue Shopping</a>
+        <a href="orders.html" class="btn btn-outline">View My Orders</a>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-bottom">
+        <div class="footer-policies" style="margin-bottom: 15px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center; opacity:0.8; font-size:0.85rem;">
+          <a href="refund-policy.html">Refund Policy</a>
+          <a href="shipping-policy.html">Shipping Policy</a>
+          <a href="privacy-policy.html">Privacy Policy</a>
+          <a href="terms.html">Terms & Conditions</a>
+        </div><span id="footer-admin-trigger" style="cursor:pointer; user-select:none;">&copy; 2026 VKclothing</span>. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <script src="js/config.js?????v=6"></script>
+  <script src="js/ui-utils.js?????v=6"></script>
+  <script src="js/app.js?????v=6"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const orderId = urlParams.get('orderId');
+      const displayEl = document.getElementById('order-id-display');
+      
+      if (orderId) {
+        displayEl.innerHTML = `Order ID: <span style="color:var(--color-primary, #000);">${orderId}</span>`;
+      } else {
+        displayEl.innerHTML = `Order ID: <span style="color:var(--color-text-secondary, #666);">Processing...</span>`;
+      }
+    });
+  </script>
+</body>
+</html>
