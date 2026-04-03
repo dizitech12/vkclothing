@@ -4,7 +4,7 @@
   "description": "VK Clothing — Premium oversized t-shirts",
   "main": "index.html",
   "scripts": {
-    "postinstall": "node generate-config.js"
+    "build": "node generate-config.js"
   },
   "keywords": [],
   "author": "",
