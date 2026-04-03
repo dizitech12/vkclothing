@@ -7,7 +7,7 @@
 Thumbs.db
 
 # Secrets (KEEPING PRIVATE)
-js/config.js
+# (Add any local secrets here)
 
 # Google Apps Script (OPTIONAL: Uncomment if you want to keep your GAS backend private)
 # google-apps-script/Code.gs
