@@ -7,38 +7,66 @@ const API = {
   // ---------- Helper: GET request ----------
   async _get(params) {
     try {
-      params._t = Date.now();
-      const url = `${CONFIG.API_URL}?${new URLSearchParams(params).toString()}`;
-      const res = await fetch(url, { redirect: 'follow' });
+      const url = `/api/proxy?${new URLSearchParams(params).toString()}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
       return await res.json();
     } catch (err) {
       console.error('API GET Error:', err);
-      if (typeof showToast === 'function') showToast('Network error. Please check your connection.', 'error');
+      if (typeof showToast === 'function') showToast('Something went wrong, please try again.', 'error');
       throw err;
     }
   },
 
   // ---------- Helper: POST request ----------
   async _post(payload) {
-    if (location.protocol === "file:") {
-      console.warn("Site is running under file:// protocol. API requests are blocked by browser CORS policy.");
-      alert("Please run the site using localhost or hosting environment to enable order actions.");
-      return Promise.reject("Invalid environment");
-    }
-
     try {
-      const res = await fetch(CONFIG.API_URL, {
+      const res = await fetch('/api/proxy', {
         method: 'POST',
-        redirect: 'follow',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
       return await res.json();
     } catch (err) {
       console.error('API POST Error:', err);
-      if (typeof showToast === 'function') showToast('Unable to connect to server. Please open the site using localhost or deployed link.', 'error');
+      if (typeof showToast === 'function') showToast('Something went wrong, please try again.', 'error');
       return { success: false, error: "Server connection failed" };
+    }
+  },
+
+  // Helper: Convert File object to Base64
+  _toBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result.replace(/^data:.+;base64,/, ''));
+      reader.onerror = error => reject(error);
+    });
+  },
+
+  // ---------- ImgBB Upload ----------
+  async uploadImage(file) {
+    try {
+      const base64Image = await this._toBase64(file);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: base64Image }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        return { success: true, url: data.data.url };
+      }
+      return { success: false, error: 'Upload failed' };
+    } catch (err) {
+      console.error('Image upload failed:', err);
+      if (typeof showToast === 'function') showToast('Something went wrong, please try again.', 'error');
+      return { success: false, error: err.message };
     }
   },
 
@@ -312,28 +340,6 @@ const API = {
       return await this._post({ action: 'submitContact', data: formData });
     } catch (err) {
       console.error('Failed to submit contact:', err);
-      return { success: false, error: err.message };
-    }
-  },
-
-  // ---------- ImgBB Upload ----------
-  async uploadImage(file) {
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('key', CONFIG.IMGBB_API_KEY);
-
-      const res = await fetch(CONFIG.IMGBB_URL, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        return { success: true, url: data.data.url };
-      }
-      return { success: false, error: 'Upload failed' };
-    } catch (err) {
-      console.error('Image upload failed:', err);
       return { success: false, error: err.message };
     }
   },
