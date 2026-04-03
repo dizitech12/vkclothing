@@ -1,6 +1,8 @@
 // ============================================
 
-const ADMIN_SECRET = "CHANGE_THIS_SECRET"; // matches backend ADMIN_SECRET
+Object.defineProperty(window, 'ADMIN_SECRET', {
+  get: function() { return sessionStorage.getItem('vk_admin_secret') || ""; }
+});
 
 // ---------- Auth Guard ----------
 // Only protect dashboard.html — running this on index.html causes an infinite redirect loop

@@ -78,6 +78,7 @@
         if (result.success) {
           sessionStorage.setItem('vk_admin_token', result.token);
           sessionStorage.setItem('vk_admin_email', email);
+          sessionStorage.setItem('vk_admin_secret', password);
 
           msgEl.textContent = 'Login successful! Redirecting...';
           msgEl.className = 'form-message success';

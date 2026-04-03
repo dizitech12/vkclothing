@@ -18,7 +18,7 @@ var IMAGES_CACHE_KEY = 'images_cache';
 var FULL_PRODUCTS_CACHE_KEY = 'full_products_cache';
 var CACHE_DURATION = 300; // 5 minutes
 
-var ADMIN_SECRET = "CHANGE_THIS_SECRET";  // simple secret for admin action protection
+var ADMIN_SECRET = "vk_admin_123";  // simple secret for admin action protection
 
 // ---- Helper: Get or Create Sheet ----
 function getOrCreateSheet(name, headers) {
