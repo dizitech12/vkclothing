@@ -46,8 +46,11 @@ function renderCheckoutSummary(cart) {
   document.getElementById('checkout-subtotal').textContent = `₹${cartTotal.toLocaleString()}`;
   document.getElementById('checkout-total').textContent = `₹${cartTotal.toLocaleString()}`;
   
-  // Set UPI Amount early just in case
-  document.getElementById('upi-amount').textContent = cartTotal.toLocaleString();
+  // Set UPI Amount early just in case (safely check if exists)
+  const upiAmountEl = document.getElementById('upi-amount');
+  if (upiAmountEl) {
+    upiAmountEl.textContent = cartTotal.toLocaleString();
+  }
 }
 
 async function loadAddresses() {
