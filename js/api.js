@@ -4,12 +4,25 @@
 // ============================================
 
 const API = {
+  // ---------- Helper: Admin secret ----------
+  _resolveAdminSecret() {
+    try {
+      return sessionStorage.getItem('vk_admin_secret') || '';
+    } catch (err) {
+      return '';
+    }
+  },
+
   // ---------- Helper: GET request ----------
   async _get(params) {
     try {
       const url = `/api/proxy?${new URLSearchParams(params).toString()}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+      if (!res.ok) {
+        const errorData = await res.text();
+        console.error(`Proxy GET Error Response (${res.status}):`, errorData);
+        throw new Error(`HTTP Error: ${res.status}`);
+      }
       return await res.json();
     } catch (err) {
       console.error('API GET Error:', err);
@@ -28,7 +41,11 @@ const API = {
         },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+      if (!res.ok) {
+        const errorData = await res.text();
+        console.error(`Proxy POST Error Response (${res.status}):`, errorData);
+        throw new Error(`HTTP Error: ${res.status}`);
+      }
       return await res.json();
     } catch (err) {
       console.error('API POST Error:', err);
@@ -109,7 +126,8 @@ const API = {
 
   async addProduct(product, adminSecret) {
     try {
-      const result = await this._post({ action: 'addProduct', data: product, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      const result = await this._post({ action: 'addProduct', data: product, adminSecret: finalAdminSecret });
       this.clearLocalCache();
       return result;
     } catch (err) {
@@ -120,7 +138,8 @@ const API = {
 
   async updateProduct(product, adminSecret) {
     try {
-      const result = await this._post({ action: 'updateProduct', data: product, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      const result = await this._post({ action: 'updateProduct', data: product, adminSecret: finalAdminSecret });
       this.clearLocalCache();
       return result;
     } catch (err) {
@@ -131,7 +150,8 @@ const API = {
 
   async deleteProduct(id, adminSecret) {
     try {
-      const result = await this._post({ action: 'deleteProduct', id, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      const result = await this._post({ action: 'deleteProduct', id, adminSecret: finalAdminSecret });
       this.clearLocalCache();
       return result;
     } catch (err) {
@@ -172,7 +192,8 @@ const API = {
 
   async saveProductVariants(productId, variants, adminSecret) {
     try {
-      const result = await this._post({ action: 'saveProductVariants', productId, variants, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      const result = await this._post({ action: 'saveProductVariants', productId, variants, adminSecret: finalAdminSecret });
       this.clearLocalCache();
       return result;
     } catch (err) {
@@ -202,7 +223,8 @@ const API = {
 
   async saveProductImages(productId, images, adminSecret) {
     try {
-      const result = await this._post({ action: 'saveProductImages', productId, images, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      const result = await this._post({ action: 'saveProductImages', productId, images, adminSecret: finalAdminSecret });
       this.clearLocalCache();
       return result;
     } catch (err) {
@@ -223,7 +245,8 @@ const API = {
 
   async getOrders(adminSecret) {
     try {
-      const res = await this._get({ action: 'getOrders', adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      const res = await this._get({ action: 'getOrders', adminSecret: finalAdminSecret });
       return res.success ? res.orders : [];
     } catch (err) {
       console.error('Failed to fetch orders:', err);
@@ -242,7 +265,8 @@ const API = {
 
   async updateOrderStatus(orderId, status, adminSecret) {
     try {
-      return await this._post({ action: 'updateOrderStatus', orderId, status, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._post({ action: 'updateOrderStatus', orderId, status, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to update order status:', err);
       return { success: false, error: err.message };
@@ -251,7 +275,8 @@ const API = {
 
   async updatePaymentStatus(orderId, paymentStatus, adminSecret) {
     try {
-      return await this._post({ action: 'updatePaymentStatus', orderId, paymentStatus, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._post({ action: 'updatePaymentStatus', orderId, paymentStatus, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to update payment status:', err);
       return { success: false, error: err.message };
@@ -260,7 +285,8 @@ const API = {
 
   async deleteOrder(orderId, adminSecret) {
     try {
-      return await this._post({ action: 'deleteOrder', orderId, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._post({ action: 'deleteOrder', orderId, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to delete order:', err);
       return { success: false, error: err.message };
@@ -347,7 +373,8 @@ const API = {
   // ---------- Analytics ----------
   async getAnalytics(refresh = false, adminSecret) {
     try {
-      return await this._get({ action: 'getAnalytics', refresh: refresh, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._get({ action: 'getAnalytics', refresh: refresh, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
       return { success: false, error: err.message };
@@ -356,7 +383,8 @@ const API = {
 
   async getAnalyticsSummary(refresh = false, adminSecret) {
     try {
-      return await this._get({ action: 'getAnalyticsSummary', refresh: refresh, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._get({ action: 'getAnalyticsSummary', refresh: refresh, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to fetch analytics summary:', err);
       return { success: false, error: err.message };
@@ -365,7 +393,8 @@ const API = {
 
   async getWeeklySales(refresh = false, adminSecret) {
     try {
-      return await this._get({ action: 'getWeeklySales', refresh: refresh, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._get({ action: 'getWeeklySales', refresh: refresh, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to fetch weekly sales:', err);
       return { success: false, error: err.message };
@@ -374,7 +403,8 @@ const API = {
 
   async getOrdersPerDay(refresh = false, adminSecret) {
     try {
-      return await this._get({ action: 'getOrdersPerDay', refresh: refresh, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._get({ action: 'getOrdersPerDay', refresh: refresh, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to fetch orders per day:', err);
       return { success: false, error: err.message };
@@ -383,7 +413,8 @@ const API = {
 
   async getCustomerGrowth(refresh = false, adminSecret) {
     try {
-      return await this._get({ action: 'getCustomerGrowth', refresh: refresh, adminSecret });
+      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
+      return await this._get({ action: 'getCustomerGrowth', refresh: refresh, adminSecret: finalAdminSecret });
     } catch (err) {
       console.error('Failed to fetch customer growth:', err);
       return { success: false, error: err.message };
