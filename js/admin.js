@@ -1,17 +1,12 @@
 // ============================================
 
-function getAdminSessionSecret() {
-  return sessionStorage.getItem('vk_admin_secret') || '';
-}
-
 // ---------- Auth Guard ----------
 // Only protect dashboard.html — running this on index.html causes an infinite redirect loop
 function protectAdminPage() {
   if (!window.location.pathname.endsWith('dashboard.html')) return;
 
   const token = sessionStorage.getItem('vk_admin_token');
-  const secret = getAdminSessionSecret();
-  if (!token || !secret) {
+  if (!token) {
     alert('Please login first');
     window.location.href = 'index.html';
     return;
@@ -923,7 +918,6 @@ async function handlePaymentStatusChange(select) {
 function adminLogout() {
   sessionStorage.removeItem('vk_admin_token');
   sessionStorage.removeItem('vk_admin_email');
-  sessionStorage.removeItem('vk_admin_secret');
   window.location.href = 'index.html';
 }
 
