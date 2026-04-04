@@ -41,8 +41,13 @@ export default async function handler(req, res) {
       const jsonData = JSON.parse(data);
       res.status(200).json(jsonData);
     } catch (parseError) {
-      // If it's not JSON, send it as text but still 200 OK (so client can handle it or show error)
-      res.status(200).send(data);
+      // If it's not JSON, it means Google returned an HTML page (like a login page or error)
+      console.error("Google Apps Script returned non-JSON:", data.substring(0, 500));
+      res.status(502).json({
+        success: false,
+        error: "Google Apps Script returned HTML instead of JSON. Check if 'Who has access' is set to 'Anyone' in your deployment settings.",
+        details: data.substring(0, 300)
+      });
     }
 
   } catch (error) {
