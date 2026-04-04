@@ -162,7 +162,7 @@ function goToStep(step) {
     const selectedCard = document.getElementById('addr-' + selectedAddressId);
     let addrText = selectedCard ? selectedCard.innerText.replace('Selected', '').trim() : 'Saved Address';
     document.getElementById('confirm-address').textContent = addrText.replace(/\\n/g, ', ');
-    document.getElementById('confirm-payment').textContent = selectedPaymentMethod === 'UPI' ? 'UPI Payment (Scan QR)' : 'Cash on Delivery';
+    document.getElementById('confirm-payment').textContent = selectedPaymentMethod === 'UPI' ? 'UPI Payment (Scan QR)' : 'Pending Online Payment';
     
     // Toggle UPI Confirmation Box
     const upiContainer = document.getElementById('upi-confirm-container');

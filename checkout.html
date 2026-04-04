@@ -222,24 +222,12 @@
             <h2 class="step-title">Payment Method</h2>
           </div>
           
-          <div class="payment-options">
-            <label class="payment-option selected" id="opt-cod" onclick="selectPayment('COD')">
-              <input type="radio" name="payment" value="COD" checked>
-              <span>Cash on Delivery (COD)</span>
-            </label>
-            <label class="payment-option" id="opt-upi" onclick="selectPayment('UPI')">
-              <input type="radio" name="payment" value="UPI">
-              <div style="display:flex;flex-direction:column;">
-                <span>UPI Payment (QR Code)</span>
-                <span style="font-size:0.8rem;color:var(--color-text-muted);font-weight:400;margin-top:4px;">Scan to pay instantly.</span>
-              </div>
-            </label>
-          </div>
-
-          <div id="upi-qr-container" style="display:none; text-align:center; padding:24px; background:#f9f9f9; border-radius:8px; margin-top:16px;">
-             <p style="margin-bottom:16px; font-weight:600;">Scan QR with any UPI App (GPay, PhonePe, Paytm)</p>
-             <img id="upi-qr-image" src="" alt="UPI QR Code" style="width:200px; height:200px; padding:10px; background:white; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
-             <p style="margin-top:16px; color:#666; font-size:0.9rem;">Amount: ₹<span id="upi-amount"></span></p>
+          <div class="payment-coming-soon">
+            <h3>Online Payments Coming Soon</h3>
+            <p>
+              We are currently enabling secure online payments.
+              Orders placed now will be confirmed manually by our team after review.
+            </p>
           </div>
 
           <div class="nav-buttons">
