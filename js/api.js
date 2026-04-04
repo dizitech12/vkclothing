@@ -243,10 +243,9 @@ const API = {
     }
   },
 
-  async getOrders(adminSecret) {
+  async getOrders() {
     try {
-      const finalAdminSecret = adminSecret || this._resolveAdminSecret();
-      const res = await this._get({ action: 'getOrders', adminSecret: finalAdminSecret });
+      const res = await this._get({ action: 'getOrders', adminSecret: 'vk_admin_123' });
       return res.success ? res.orders : [];
     } catch (err) {
       console.error('Failed to fetch orders:', err);
