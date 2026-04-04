@@ -18,3 +18,7 @@ package-lock.json
 vendor/
 .env
 .env.*
+
+# Runtime/debug logs
+debug-logs.txt
+*.log

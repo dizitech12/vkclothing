@@ -1,8 +1,8 @@
 // ============================================
 
-Object.defineProperty(window, 'ADMIN_SECRET', {
-  get: function() { return sessionStorage.getItem('vk_admin_secret') || ""; }
-});
+function getAdminSessionSecret() {
+  return sessionStorage.getItem('vk_admin_secret') || '';
+}
 
 // ---------- Auth Guard ----------
 // Only protect dashboard.html — running this on index.html causes an infinite redirect loop
@@ -10,7 +10,8 @@ function protectAdminPage() {
   if (!window.location.pathname.endsWith('dashboard.html')) return;
 
   const token = sessionStorage.getItem('vk_admin_token');
-  if (!token) {
+  const secret = getAdminSessionSecret();
+  if (!token || !secret) {
     alert('Please login first');
     window.location.href = 'index.html';
     return;
@@ -53,7 +54,7 @@ async function loadAnalyticsDashboard(refresh = false) {
 
   // Load summary cards
   try {
-    const data = await API.getAnalyticsSummary(refresh, ADMIN_SECRET);
+    const data = await API.getAnalyticsSummary(refresh);
     if (data.success) {
       document.getElementById('stat-total-orders').textContent = data.totalOrders.toLocaleString();
       document.getElementById('stat-total-revenue').textContent = '₹' + data.totalRevenue.toLocaleString();
@@ -86,7 +87,7 @@ let weeklySalesChartInstance = null;
 
 async function loadWeeklySalesChart(refresh = false) {
   try {
-    const data = await API.getWeeklySales(refresh, ADMIN_SECRET);
+    const data = await API.getWeeklySales(refresh);
     if (!data.success) return;
 
     const ctx = document.getElementById('weekly-sales-chart').getContext('2d');
@@ -138,7 +139,7 @@ let ordersPerDayChartInstance = null;
 
 async function loadOrdersPerDayChart(refresh = false) {
   try {
-    const data = await API.getOrdersPerDay(refresh, ADMIN_SECRET);
+    const data = await API.getOrdersPerDay(refresh);
     if (!data.success) return;
 
     const ctx = document.getElementById('orders-per-day-chart').getContext('2d');
@@ -187,7 +188,7 @@ let customerGrowthChartInstance = null;
 
 async function loadCustomerGrowthChart(refresh = false) {
   try {
-    const data = await API.getCustomerGrowth(refresh, ADMIN_SECRET);
+    const data = await API.getCustomerGrowth(refresh);
     if (!data.success) return;
 
     const ctx = document.getElementById('customer-growth-chart').getContext('2d');
@@ -315,7 +316,7 @@ async function loadOrders() {
   const tbody = document.getElementById('orders-table-body');
   tbody.innerHTML = '<tr><td colspan="10"><div class="loading-spinner"></div></td></tr>';
   try {
-    allOrders = await API.getOrders(ADMIN_SECRET);
+    allOrders = await API.getOrders();
     renderOrders();
   } catch (err) {
     console.error('Orders load error:', err);
@@ -417,7 +418,7 @@ async function deleteAdminOrder(orderId) {
   if (!confirm(`Are you sure you want to delete order ${orderId}? This cannot be undone.`)) return;
   
   try {
-    const result = await API.deleteOrder(orderId, ADMIN_SECRET);
+    const result = await API.deleteOrder(orderId);
     if (result.success) {
       if (typeof showToast === 'function') showToast('Order deleted successfully.', 'success');
       loadOrders();
@@ -805,9 +806,9 @@ async function handleSaveProduct(e) {
     
     if (editingProductId) {
       productData.id = editingProductId;
-      result = await API.updateProduct(productData, ADMIN_SECRET);
+      result = await API.updateProduct(productData);
     } else {
-      result = await API.addProduct(productData, ADMIN_SECRET);
+      result = await API.addProduct(productData);
       if (result.success) finalProductId = result.id;
     }
 
@@ -815,7 +816,7 @@ async function handleSaveProduct(e) {
 
     // 2. Save Variants
     saveBtn.textContent = 'Saving Variants...';
-    const variantRes = await API.saveProductVariants(finalProductId, selectedVariants, ADMIN_SECRET);
+    const variantRes = await API.saveProductVariants(finalProductId, selectedVariants);
     if (!variantRes.success) throw new Error(variantRes.error || 'Failed to save variants');
 
     // 3. Save Images
@@ -823,7 +824,7 @@ async function handleSaveProduct(e) {
     // Format required by API: { color: ..., imageUrl: ... }
     // Note: galleryImages uses `colorName` internally; backend reads `color` — map explicitly
     const finalGallery = galleryImages.map(img => ({ color: img.colorName, imageUrl: img.imageUrl, productId: finalProductId }));
-    const imageRes = await API.saveProductImages(finalProductId, finalGallery, ADMIN_SECRET);
+    const imageRes = await API.saveProductImages(finalProductId, finalGallery);
     if (!imageRes.success) throw new Error(imageRes.error || 'Failed to save gallery images');
 
     // Success!
@@ -855,7 +856,7 @@ function confirmDelete(id) {
     btn.disabled = true;
     btn.textContent = 'Deleting...';
     try {
-      const result = await API.deleteProduct(pendingDeleteId, ADMIN_SECRET);
+      const result = await API.deleteProduct(pendingDeleteId);
       if (result.success) {
         closeDeleteModal();
         loadAllData();
@@ -886,7 +887,7 @@ async function handleOrderStatusChange(select) {
   const newStatus = select.value;
   select.disabled = true;
   try {
-    const res = await API.updateOrderStatus(orderId, newStatus, ADMIN_SECRET);
+    const res = await API.updateOrderStatus(orderId, newStatus);
     if (res.success) {
       loadOrders(); 
     } else {
@@ -905,7 +906,7 @@ async function handlePaymentStatusChange(select) {
   const newStatus = select.value;
   select.disabled = true;
   try {
-    const res = await API.updatePaymentStatus(orderId, newStatus, ADMIN_SECRET);
+    const res = await API.updatePaymentStatus(orderId, newStatus);
     if (res.success) {
       loadOrders(); 
     } else {
@@ -914,7 +915,7 @@ async function handlePaymentStatusChange(select) {
     }
   } catch (err) {
     alert('Failed to update payment status.');
-    element.disabled = false;
+    select.disabled = false;
   }
 }
 
@@ -922,6 +923,7 @@ async function handlePaymentStatusChange(select) {
 function adminLogout() {
   sessionStorage.removeItem('vk_admin_token');
   sessionStorage.removeItem('vk_admin_email');
+  sessionStorage.removeItem('vk_admin_secret');
   window.location.href = 'index.html';
 }
 

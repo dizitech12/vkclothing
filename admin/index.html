@@ -50,7 +50,8 @@
   <script>
     // Only auto-redirect when we are definitely on the login page
     const _token = sessionStorage.getItem('vk_admin_token');
-    if (_token && window.location.pathname.endsWith('index.html')) {
+    const _secret = sessionStorage.getItem('vk_admin_secret');
+    if (_token && _secret && window.location.pathname.endsWith('index.html')) {
       window.location.replace('dashboard.html');
     }
 
@@ -88,6 +89,7 @@
             window.location.href = 'dashboard.html';
           }, 800);
         } else {
+          sessionStorage.removeItem('vk_admin_secret');
           msgEl.textContent = result.error || 'Invalid credentials.';
           msgEl.className = 'form-message error';
           msgEl.style.display = 'block';
@@ -95,6 +97,7 @@
           btn.textContent = 'Sign In';
         }
       } catch (err) {
+        sessionStorage.removeItem('vk_admin_secret');
         msgEl.textContent = 'Connection error. Please try again.';
         msgEl.className = 'form-message error';
         msgEl.style.display = 'block';

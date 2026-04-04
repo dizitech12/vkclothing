@@ -7,9 +7,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Load Admin Token / Secret
-  // Wait, standard admin token check:
-  const adminSecret = typeof ADMIN_SECRET !== 'undefined' ? ADMIN_SECRET : (CONFIG.ADMIN ? CONFIG.ADMIN.secret : 'vk_admin_123');
+  const adminSecret = sessionStorage.getItem('vk_admin_secret') || '';
+  if (!adminSecret) {
+    showError("Admin session expired. Please log in again.");
+    return;
+  }
 
   try {
     const orders = await API.getOrders(adminSecret);
