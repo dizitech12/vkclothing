@@ -217,25 +217,22 @@ function selectPayment(method) {
 // ---- Order Placement ----
 
 async function placeOrder() {
-  if (selectedPaymentMethod === 'UPI' && !document.getElementById('upi-confirm-checkbox').checked) {
-    if (typeof showToast === 'function') showToast("Please confirm your UPI payment first.", "warning");
-    return;
-  }
-
   const btn = document.getElementById('place-order-btn');
   const errorMsg = document.getElementById('checkout-error');
   
   btn.disabled = true;
-  btn.textContent = 'Processing Order...';
-  errorMsg.style.display = 'none';
+  btn.textContent = 'Creating Order...';
+  if(errorMsg) errorMsg.style.display = 'none';
 
   const cart = getCart();
+  const user = Auth.getUser();
   const orderData = {
-    userId: Auth.getUserId(),
+    userId: user?.id || 'CUST_GU',
     customerPhone: Auth.getUserPhone(),
     addressId: selectedAddressId,
-    shippingSnapshot: document.getElementById('confirm-address').textContent,
-    paymentMethod: selectedPaymentMethod,
+    shippingSnapshot: document.getElementById('confirm-address')?.textContent || '',
+    paymentMethod: 'Cashfree',
+    paymentStatus: 'Pending',
     items: cart.map(item => ({
       productId: item.id,
       productName: item.name,
@@ -248,51 +245,51 @@ async function placeOrder() {
   };
 
   try {
+    // 1. Initial save to log the pending order into Google Sheets
     const result = await API.createOrder(orderData);
     
     if (result.success) {
-      console.log("Order created successfully:", result.orderId);
-      localStorage.removeItem('vk_cart');
+      console.log("Order stored locally:", result.orderId);
+      btn.textContent = 'Redirecting to Payment...';
       
-      const step3 = document.getElementById('step-3');
-      if (step3) {
-        step3.innerHTML = `
-          <div style="text-align:center; padding: 40px 20px;">
-            <div style="width:64px; height:64px; background:var(--color-success, #4caf50); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; margin: 0 auto 24px;">
-              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </div>
-            <h2 style="margin-bottom:16px;">Order Confirmed!</h2>
-            <p style="color:var(--color-text-secondary, #666); margin-bottom:8px;">Thank you for your purchase.</p>
-            <p style="font-weight:600; margin-bottom: 24px;">Order ID: ${result.orderId}</p>
-            <a href="shop.html" class="btn btn-primary">Continue Shopping</a>
-          </div>
-        `;
-      }
-      const sidebar = document.querySelector('.order-summary-sidebar');
-      if (sidebar) sidebar.style.display = 'none';
-      const container = document.querySelector('.checkout-container');
-      if (container) container.style.gridTemplateColumns = '1fr';
+      // 2. Proxied Call to Cashfree
+      const createResponse = await fetch(CASHFREE_CONFIG.API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: result.orderId,
+          order_amount: cartTotal,
+          customer_details: {
+            customer_id: orderData.userId,
+            customer_name: user?.name || "Customer",
+            customer_email: user?.email || "customer@vkclothing.com",
+            customer_phone: orderData.customerPhone 
+          },
+          order_meta: {
+            return_url: window.location.origin + CASHFREE_CONFIG.RETURN_URL + "?order_id={order_id}"
+          }
+        })
+      });
 
-      try {
-        window.location.href = `order-success.html?orderId=${result.orderId}`;
-      } catch (e) {
-        console.warn("Redirect failed but order created");
+      const cfData = await createResponse.json();
+      
+      if (cfData.success && cfData.payment_link) {
+         window.location.href = cfData.payment_link;
+      } else {
+         throw new Error(cfData.error || 'Failed to load Payment Gateway');
       }
+
     } else {
-      if (typeof showToast === 'function') showToast(result.error || 'Failed to place order.', 'error');
-      if (errorMsg) {
-        errorMsg.textContent = result.error || 'Failed to place order. A product might be out of stock.';
-        errorMsg.style.display = 'block';
-      }
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = 'Try Again';
-      }
+      throw new Error(result.error || 'Failed to request order.');
     }
-  } catch(err) {
-    if (typeof showToast === 'function') showToast('Network error during checkout.', 'error');
-    errorMsg.textContent = 'A network error occurred. Please try again.';
-    errorMsg.style.display = 'block';
+  } catch (err) {
+    console.error("Checkout crash:", err);
+    if(errorMsg) {
+      errorMsg.textContent = err.message || 'An error occurred during checkout.';
+      errorMsg.style.display = 'block';
+    } else {
+      alert(err.message || 'Failed to place order');
+    }
     btn.disabled = false;
     btn.textContent = 'Place Order';
   }

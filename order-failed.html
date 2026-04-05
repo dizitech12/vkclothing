@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Failed - VKclothing</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+  <style>
+    .failed-container {
+      max-width: 500px;
+      margin: 80px auto;
+      text-align: center;
+      padding: 40px 20px;
+      background: var(--color-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+    }
+    .error-icon {
+      width: 80px;
+      height: 80px;
+      background: var(--color-error, #f44336);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="failed-container">
+    <div class="error-icon">
+      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </div>
+    <h1 style="margin-bottom:16px;">Payment Failed</h1>
+    <p style="color:var(--color-text-secondary); margin-bottom:32px;">
+      Unfortunately, we could not process your payment or the transaction was cancelled.
+    </p>
+    
+    <a href="checkout.html" class="btn btn-primary" style="width:100%;">Try Again</a>
+    <a href="cart.html" class="btn btn-outline" style="width:100%; margin-top: 12px;">Return to Cart</a>
+  </div>
+</body>
+</html>
