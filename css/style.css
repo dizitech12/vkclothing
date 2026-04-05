@@ -1961,4 +1961,6 @@ button { cursor: pointer; }
 .payment-coming-soon h3 { margin-bottom: 8px; font-size: 16px; } 
   
 /* Mobile Fix for Color Input */ 
-#color-name-input { text-align: left !important; direction: ltr !important; unicode-bidi: isolate !important; color: #000 !important; -webkit-text-fill-color: #000 !important; opacity: 1 !important; transform: none !important; letter-spacing: 0 !important; }
+#color-name-input { text-align: left !important; direction: ltr !important; unicode-bidi: normal !important; color: #000000 !important; -webkit-text-fill-color: #000000 !important; opacity: 1 !important; transform: none !important; -webkit-transform: none !important; letter-spacing: normal !important; }
+#color-name-input::-webkit-input-placeholder { color: #888888 !important; -webkit-text-fill-color: #888888 !important; opacity: 1 !important; direction: ltr !important; transform: none !important; -webkit-transform: none !important; }
+#color-name-input::placeholder { color: #888888 !important; -webkit-text-fill-color: #888888 !important; opacity: 1 !important; direction: ltr !important; transform: none !important; -webkit-transform: none !important; }
