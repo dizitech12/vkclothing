@@ -261,34 +261,32 @@ function renderProductUI(container) {
       ` : ''}
 
       <div class="product-actions" style="flex-direction:column; gap:10px;">
-
-        <!-- Row 1: Add to Cart (full width) -->
-        <button class="btn btn-primary btn-add-cart" id="add-to-cart-btn"
-                style="width:100%; padding:14px;"
+        <!-- Row 1: Add to Cart -->
+        <button class="btn btn-primary btn-add-cart" id="add-to-cart-btn" style="width:100%;"
                 ${outOfStock ? 'disabled' : ''}>
           ${outOfStock ? 'Out of Stock' : 'Add to Cart'}
         </button>
 
-        <!-- Row 2: Buy Now + Wishlist -->
+        <!-- Row 2: Buy Now + Wishlist heart -->
         <div style="display:flex; gap:10px;">
-          <button class="btn btn-outline" id="buy-now-btn"
-                  style="flex:1; padding:13px; font-weight:700;"
+          <button class="btn btn-outline" id="buy-now-btn" style="flex:1; font-weight:700;"
                   ${outOfStock ? 'disabled' : ''}>
             Buy Now
           </button>
-          <button class="btn btn-outline" id="wishlist-btn"
+          <button id="wishlist-btn"
                   onclick="window.toggleWishlist('${currentProduct.id}', this)"
                   title="Add to Wishlist"
-                  style="width:48px; padding:0; display:flex; align-items:center; justify-content:center; flex-shrink:0;"
-                  data-wishlisted="${window.Wishlist && window.Wishlist.has(currentProduct.id) ? 'true' : 'false'}">
+                  data-wishlisted="${window.Wishlist && window.Wishlist.has(currentProduct.id) ? 'true' : 'false'}"
+                  style="width:46px; height:46px; border-radius:10px; border:2px solid #e5e5e5;
+                         background:#fff; display:flex; align-items:center; justify-content:center;
+                         cursor:pointer; flex-shrink:0; transition:border-color 0.2s;">
             <svg viewBox="0 0 24 24" width="20" height="20"
                  fill="${window.Wishlist && window.Wishlist.has(currentProduct.id) ? 'red' : 'none'}"
-                 stroke="${window.Wishlist && window.Wishlist.has(currentProduct.id) ? 'red' : 'currentColor'}" stroke-width="2">
+                 stroke="${window.Wishlist && window.Wishlist.has(currentProduct.id) ? 'red' : '#333'}" stroke-width="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.501 5.501 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           </button>
         </div>
-
       </div>
 
       <div style="margin-top:40px;">
@@ -420,61 +418,28 @@ function attachEventListeners() {
       }
     });
 
-    document.getElementById('add-to-cart-btn').addEventListener('click', () => {
-      const quantity = parseInt(document.getElementById('qty-input').value);
-      const cart = getCart();
-      
-      // Look for exact variant in cart
-      const existing = cart.find(item => item.id === currentProduct.id && item.size === selectedSize && item.color === selectedColor);
-
-      if (existing) {
-        const newTotal = existing.quantity + quantity;
-        if (newTotal > variantStock) {
-          showToast(`Cannot add. Only ${variantStock} items available for this size and color.`);
-          return;
-        }
-        existing.quantity = newTotal;
-      } else {
-        if (cart.length >= 20) {
-          showToast('Cart is full (max 20 items). Please remove some items.');
-          return;
-        }
-        cart.push({
-          id: currentProduct.id,
-          name: currentProduct.name,
-          price: currentProduct.price,
-          imageUrl: document.getElementById('main-product-img')?.src || currentProduct.imageUrl,
-          quantity: quantity,
-          size: selectedSize,
-          color: selectedColor
-        });
-      }
-
-      saveCart(cart);
-      updateCartCount();
-      showToast('Added to cart!');
-    });
-
-    // ── Buy Now ───────────────────────────────────────────────────────
-    document.getElementById('buy-now-btn').addEventListener('click', () => {
+    // ── Add to Cart ───────────────────────────────────────────────
+    function addToCartLogic() {
       const quantity = parseInt(document.getElementById('qty-input').value);
       const cart = getCart();
 
       const existing = cart.find(item =>
-        item.id === currentProduct.id && item.size === selectedSize && item.color === selectedColor
+        item.id === currentProduct.id &&
+        item.size === selectedSize &&
+        item.color === selectedColor
       );
 
       if (existing) {
         const newTotal = existing.quantity + quantity;
         if (newTotal > variantStock) {
-          showToast(`Only ${variantStock} available for this size and color.`);
-          return;
+          showToast(`Cannot add. Only ${variantStock} items available for this size and color.`);
+          return false;
         }
         existing.quantity = newTotal;
       } else {
         if (cart.length >= 20) {
-          showToast('Cart is full (max 20 items).');
-          return;
+          showToast('Cart is full (max 20 items). Please remove some items.');
+          return false;
         }
         cart.push({
           id: currentProduct.id,
@@ -489,8 +454,21 @@ function attachEventListeners() {
 
       saveCart(cart);
       updateCartCount();
-      // Redirect straight to checkout
-      window.location.href = 'checkout.html';
+      return true;
+    }
+
+    document.getElementById('add-to-cart-btn').addEventListener('click', () => {
+      if (addToCartLogic()) showToast('Added to cart! 🛒');
     });
+
+    // ── Buy Now ───────────────────────────────────────────────────
+    const buyNowBtn = document.getElementById('buy-now-btn');
+    if (buyNowBtn) {
+      buyNowBtn.addEventListener('click', () => {
+        if (addToCartLogic()) {
+          window.location.href = 'checkout.html';
+        }
+      });
+    }
   }
 }
