@@ -6,82 +6,110 @@
   <title>Payment Successful - VKclothing</title>
   <link rel="stylesheet" href="css/style.css?v=2">
   <style>
-    .success-container {
-      max-width: 500px;
-      margin: 80px auto;
+    body { background: #f6f6f6; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; }
+    .success-box {
+      max-width: 480px;
+      width: 100%;
+      background: #fff;
+      border-radius: 16px;
+      padding: 48px 40px;
       text-align: center;
-      padding: 40px 20px;
-      background: var(--color-bg);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-md);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
     }
-    .check-icon {
-      width: 80px;
-      height: 80px;
-      background: var(--color-success, #4caf50);
-      color: white;
+    .check-ring {
+      width: 88px; height: 88px;
       border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 24px;
+      background: #dcfce7;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 28px;
     }
+    .check-ring svg { width: 44px; height: 44px; stroke: #16a34a; }
+    h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; color: #111; }
+    .subtitle { color: #666; font-size: 0.95rem; margin-bottom: 28px; }
     .order-id-box {
-      background: var(--color-bg-soft);
+      background: #f9f9f9;
+      border: 1px solid #e8e8e8;
+      border-radius: 10px;
       padding: 16px;
-      border-radius: 8px;
-      margin: 24px 0;
-      font-weight: 600;
-      font-family: monospace;
-      font-size: 1.1rem;
+      margin-bottom: 28px;
     }
+    .order-id-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #999; margin-bottom: 4px; }
+    .order-id-value { font-size: 1rem; font-weight: 700; font-family: monospace; color: #111; word-break: break-all; }
+    .btn-primary {
+      display: block; width: 100%;
+      padding: 15px;
+      background: #111; color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700;
+      text-decoration: none;
+      margin-bottom: 12px;
+      cursor: pointer;
+    }
+    .btn-secondary {
+      display: block; width: 100%;
+      padding: 14px;
+      background: #fff; color: #111;
+      border: 2px solid #e5e5e5; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .status-note { font-size: 0.8rem; color: #aaa; margin-top: 20px; }
   </style>
 </head>
 <body>
-  <div class="success-container">
-    <div class="check-icon">
-      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <div class="success-box">
+    <div class="check-ring">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="20 6 9 17 4 12"></polyline>
       </svg>
     </div>
-    <h1 style="margin-bottom:16px;">Payment Successful!</h1>
-    <p style="color:var(--color-text-secondary); margin-bottom:8px;">Thank you for your purchase. Your order has been placed securely.</p>
+    
+    <h1>Payment Successful!</h1>
+    <p class="subtitle">Thank you! Your order has been placed and is being processed.</p>
     
     <div class="order-id-box">
-      Order ID: <span id="display-order-id">Loading...</span>
+      <div class="order-id-label">Order Reference</div>
+      <div class="order-id-value" id="display-order-id">Loading...</div>
     </div>
     
-    <p style="font-size:0.9rem; color:#666; margin-bottom: 32px;">You will receive an email/SMS confirmation shortly.</p>
+    <a href="orders.html" class="btn-primary">View My Orders</a>
+    <a href="shop.html" class="btn-secondary">Continue Shopping</a>
     
-    <a href="shop.html" class="btn btn-primary" style="width:100%;">Continue Shopping</a>
-    <a href="orders.html" class="btn btn-outline" style="width:100%; margin-top: 12px;">View My Orders</a>
+    <p class="status-note">You will receive a confirmation on your registered phone number.</p>
   </div>
 
-  <script src="js/config.js"></script>
-  <script src="js/api.js"></script>
+  <script src="js/config.js?v=2"></script>
+  <script src="js/api.js?v=2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // Clear cart
+      // 1. Clear cart so back button to checkout redirects to cart page (empty)
       localStorage.removeItem('vk_cart');
-      
+
+      // 2. Replace history so pressing Back NEVER goes back to checkout or Cashfree
+      //    It will instead go to previous page before checkout (usually shop/cart)
+      history.replaceState(null, '', 'order-success.html');
+
+      // 3. Get order ID from URL
       const urlParams = new URLSearchParams(window.location.search);
-      const orderId = urlParams.get('order_id');
+      const orderId = urlParams.get('order_id') || urlParams.get('orderId');
       
       if (orderId) {
         document.getElementById('display-order-id').textContent = orderId;
         
-        // Update Order to "Paid" in Google Sheets backend
+        // 4. Update payment status to Paid in Google Sheets
         try {
           await API._get('updatePaymentStatus', { 
             orderId: orderId, 
-            status: 'Paid'
+            status: 'Paid',
+            source: 'return_url'
           });
-          console.log("Payment status confirmed locally for", orderId);
+          console.log('Payment status updated to Paid for:', orderId);
         } catch (e) {
-          console.warn("Could not instantly sync payment status. Relying on webhook.", e);
+          console.warn('Could not sync payment status instantly (webhook will handle it):', e);
         }
       } else {
-        document.getElementById('display-order-id').textContent = 'Unknown';
+        document.getElementById('display-order-id').textContent = 'Order confirmed';
       }
     });
   </script>

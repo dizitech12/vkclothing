@@ -138,19 +138,24 @@ function goToStep(step) {
   document.getElementById(`step-${step}`).classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  // Update progress bar
+  const c1 = document.getElementById('prog-1');
+  const c2 = document.getElementById('prog-2');
+  const l1 = document.getElementById('prog-label-1');
+  const l2 = document.getElementById('prog-label-2');
+  const conn = document.getElementById('prog-conn-1');
+
   if (step === 1) {
-    document.getElementById('prog-1').className = 'step-circle active';
-    document.getElementById('prog-label-1').className = 'step-label active';
-    document.getElementById('prog-2').className = 'step-circle';
-    document.getElementById('prog-label-2').className = 'step-label';
-    document.getElementById('prog-conn-1').className = 'step-connector';
+    c1.className = 'step-circle active'; c1.textContent = '1';
+    c2.className = 'step-circle'; c2.textContent = '2';
+    l1.className = 'step-label active';
+    l2.className = 'step-label';
+    conn.className = 'step-connector';
   } else if (step === 2) {
-    document.getElementById('prog-1').className = 'step-circle done';
-    document.getElementById('prog-label-1').className = 'step-label';
-    document.getElementById('prog-2').className = 'step-circle active';
-    document.getElementById('prog-label-2').className = 'step-label active';
-    document.getElementById('prog-conn-1').className = 'step-connector done';
+    c1.className = 'step-circle done'; c1.textContent = '✓';
+    c2.className = 'step-circle active'; c2.textContent = '2';
+    l1.className = 'step-label';
+    l2.className = 'step-label active';
+    conn.className = 'step-connector done';
   }
 }
 
