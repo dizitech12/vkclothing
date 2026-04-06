@@ -129,8 +129,10 @@ function renderProductUI(container) {
       </div>`;
   }
 
-  // Gallery
-  const colorImages = currentImages.filter(img => img.color === selectedColor);
+  // Gallery — case-insensitive color match
+  const colorImages = currentImages.filter(img =>
+    img.color.trim().toLowerCase() === (selectedColor || '').trim().toLowerCase()
+  );
   const mainImageUrl = colorImages.length > 0 ? colorImages[0].imageUrl : (currentProduct.imageUrl || '');
   
   let galleryHtml = `
@@ -175,7 +177,10 @@ function renderProductUI(container) {
         <label>Size</label>
         <div class="size-options" id="size-options" style="display:flex; gap:10px; flex-wrap:wrap; margin-top:8px;">
           ${parsedSizes.map(size => {
-            const v = currentVariants.find(v => v.color === selectedColor && v.size === size);
+            const v = currentVariants.find(v =>
+              v.color.trim().toLowerCase() === selectedColor.trim().toLowerCase() &&
+              v.size.trim() === size.trim()
+            );
             const isOos = !v || v.stock <= 0;
             return `
               <button class="size-btn ${size === selectedSize ? 'active' : ''} ${isOos ? 'oos' : ''}" 
@@ -264,28 +269,19 @@ function attachEventListeners() {
     btn.addEventListener('click', (e) => {
       selectedColor = e.target.dataset.color;
       
-      // Auto-select first available size for this new color
+      // Auto-select first available size for this new color (case-insensitive)
       const availableSize = parsedSizes.find(size => {
-        const variant = currentVariants.find(v => v.color === selectedColor && v.size === size);
-        return variant && variant.stock > 0;
+        const variant = currentVariants.find(v =>
+          v.color.trim().toLowerCase() === selectedColor.trim().toLowerCase() &&
+          v.size.trim() === size.trim() &&
+          v.stock > 0
+        );
+        return !!variant;
       });
       selectedSize = availableSize || parsedSizes[0];
       
-      // Update main product image dynamically
-      const variantImage = currentImages.find(
-        img => img.productId === currentProduct.id && img.color.toLowerCase() === selectedColor.toLowerCase()
-      );
-
-      const mainImage = document.getElementById('main-product-img');
-      if (mainImage) {
-        if (variantImage) {
-          mainImage.src = variantImage.imageUrl;
-        } else {
-          mainImage.src = currentProduct.imageUrl || '';
-        }
-      }
-      
-      renderProductUI(container); // Re-render to update UI states
+      // Re-render — gallery will automatically show correct color images
+      renderProductUI(container);
     });
   });
 
@@ -299,7 +295,10 @@ function attachEventListeners() {
   });
 
   // Quantity and Add to Cart
-  const variant = currentVariants.find(v => v.color === selectedColor && v.size === selectedSize);
+  const variant = currentVariants.find(v =>
+    v.color.trim().toLowerCase() === (selectedColor || '').trim().toLowerCase() &&
+    v.size.trim() === (selectedSize || '').trim()
+  );
   const variantStock = variant ? variant.stock : 0;
   const outOfStock = variantStock <= 0;
 
