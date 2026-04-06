@@ -198,11 +198,12 @@ async function placeOrder() {
   errorMsg.style.display = 'none';
 
   const cart = getCart();
-  const user = Auth.getUser();
+  const userId = Auth.getUserId() || 'GUEST';
+  const userPhone = Auth.getUserPhone() || '';
 
   const orderData = {
-    userId: user?.id || 'GUEST',
-    customerPhone: Auth.getUserPhone(),
+    userId: userId,
+    customerPhone: userPhone,
     addressId: selectedAddressId,
     shippingSnapshot: document.getElementById('confirm-address').textContent,
     paymentMethod: 'Cashfree',
@@ -233,10 +234,10 @@ async function placeOrder() {
         order_id: result.orderId,
         order_amount: cartTotal,
         customer_details: {
-          customer_id: orderData.userId,
-          customer_name: user?.name || 'Customer',
-          customer_email: user?.email || 'customer@vkclothing.com',
-          customer_phone: orderData.customerPhone
+          customer_id: userId,
+          customer_name: 'Customer',
+          customer_email: 'customer@vkclothing.com',
+          customer_phone: userPhone
         },
         order_meta: {
           return_url: window.location.origin + CASHFREE_CONFIG.RETURN_URL + '?order_id={order_id}'
