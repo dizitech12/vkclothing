@@ -3,298 +3,345 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Securely complete your purchase at VK Clothing. Enter your shipping and payment details for a seamless checkout experience.">
-  <meta name="keywords" content="VK Clothing Checkout, Secure Payment, Shipping Details, Place Order">
+  <meta name="description" content="Securely complete your purchase at VK Clothing.">
   <link rel="icon" type="image/png" href="assets/images/favicon.png">
   <title>Secure Checkout | VK Clothing</title>
-  <!-- Change version number when updating files to force reload -->
-  <link rel="stylesheet" href="css/style.css?????v=6">
+  <link rel="stylesheet" href="css/style.css?v=2">
   <style>
-    .checkout-container {
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 20px;
+    body { background: #f6f6f6; }
+
+    .checkout-wrapper {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
       display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 40px;
+      grid-template-columns: 1fr 360px;
+      gap: 32px;
+      align-items: start;
     }
     @media (max-width: 768px) {
-      .checkout-container {
-        grid-template-columns: 1fr;
-      }
+      .checkout-wrapper { grid-template-columns: 1fr; }
     }
-    .checkout-flow {
-      background: var(--color-bg);
-      border-radius: var(--radius-lg);
-      padding: 32px;
-      border: 1px solid var(--color-border-light);
-    }
-    .step-header {
+
+    /* Progress Bar */
+    .progress-bar {
       display: flex;
       align-items: center;
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--color-border);
+      margin-bottom: 28px;
+      gap: 0;
     }
-    .step-number {
+    .progress-step {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+    .step-circle {
       width: 32px;
       height: 32px;
-      background: var(--color-primary);
-      color: white;
       border-radius: 50%;
+      background: #e0e0e0;
+      color: #999;
+      font-weight: 700;
+      font-size: 0.85rem;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+    .step-circle.active { background: #111; color: #fff; }
+    .step-circle.done { background: #22c55e; color: #fff; }
+    .step-label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: #999;
+      margin-left: 8px;
+      white-space: nowrap;
+    }
+    .step-label.active { color: #111; font-weight: 700; }
+    .step-connector {
+      flex: 1;
+      height: 2px;
+      background: #e0e0e0;
+      margin: 0 12px;
+    }
+    .step-connector.done { background: #22c55e; }
+
+    /* Cards */
+    .checkout-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px;
+      border: 1px solid #ebebeb;
+    }
+    .card-title {
+      font-size: 1.1rem;
       font-weight: 700;
-      margin-right: 16px;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0f0f0;
     }
-    .step-title {
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-    .step-content {
-      display: none;
-      animation: fadeIn 0.3s ease-in-out;
-    }
-    .step-content.active {
-      display: block;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+
+    /* Address Cards */
     .address-card {
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
+      border: 2px solid #e5e5e5;
+      border-radius: 10px;
       padding: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       cursor: pointer;
       transition: all 0.2s;
+      position: relative;
     }
-    .address-card:hover {
-      border-color: #999;
+    .address-card:hover { border-color: #999; }
+    .address-card.selected { border-color: #111; background: #fafafa; }
+    .address-card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .address-card p { font-size: 0.85rem; color: #666; line-height: 1.5; margin: 0; }
+    .selected-badge {
+      display: none;
+      position: absolute;
+      top: 12px; right: 12px;
+      background: #111;
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
     }
-    .address-card.selected {
-      border-color: var(--color-primary);
-      background: rgba(0,0,0,0.02);
-    }
-    .address-card h4 {
-      margin-bottom: 8px;
-    }
-    .address-card p {
-      color: var(--color-text-secondary);
-      font-size: 0.9rem;
-      line-height: 1.5;
-    }
-    .payment-option {
-      display: flex;
-      align-items: center;
-      padding: 16px;
-      border: 2px solid var(--color-border);
-      border-radius: var(--radius-md);
-      margin-bottom: 16px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .payment-option.selected {
-      border-color: var(--color-primary);
-      background: rgba(0,0,0,0.02);
-    }
-    .payment-option input {
-      margin-right: 16px;
-      transform: scale(1.2);
-    }
-    .payment-option span {
-      font-weight: 600;
-    }
-    
-    /* Order Summary Sidebar */
-    .order-summary-sidebar {
-      background: var(--color-bg-soft);
+    .address-card.selected .selected-badge { display: block; }
+
+    /* Order Summary Card (right sidebar) */
+    .summary-card {
+      background: #fff;
+      border-radius: 12px;
       padding: 24px;
-      border-radius: var(--radius-lg);
-      height: fit-content;
+      border: 1px solid #ebebeb;
       position: sticky;
       top: 100px;
     }
-    .summary-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      font-size: 0.95rem;
-    }
-    .summary-item.total {
-      font-size: 1.1rem;
-      font-weight: 700;
-      border-top: 1px solid var(--color-border);
-      padding-top: 12px;
-      margin-top: 12px;
-    }
-    .summary-product {
+    .summary-item-row {
       display: flex;
       align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 16px;
-      border-bottom: 1px dashed var(--color-border-light);
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid #f5f5f5;
     }
-    .summary-product img {
-      width: 60px;
-      height: 80px;
+    .summary-item-row:last-child { border-bottom: none; }
+    .summary-item-img {
+      width: 56px;
+      height: 72px;
       object-fit: cover;
-      border-radius: 4px;
-      margin-right: 16px;
+      border-radius: 6px;
+      background: #f5f5f5;
+      flex-shrink: 0;
     }
-    .summary-product-info h5 {
-      font-size: 0.9rem;
-      margin-bottom: 4px;
-    }
-    .summary-product-info p {
-      font-size: 0.8rem;
-      color: var(--color-text-secondary);
-    }
-    
-    .nav-buttons {
+    .summary-item-info h5 { font-size: 0.88rem; font-weight: 600; margin-bottom: 2px; }
+    .summary-item-info p { font-size: 0.78rem; color: #888; margin: 0; }
+    .price-breakdown { margin-top: 16px; }
+    .price-line {
       display: flex;
       justify-content: space-between;
-      margin-top: 32px;
+      font-size: 0.88rem;
+      padding: 6px 0;
+      color: #555;
     }
+    .price-line.total {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #111;
+      border-top: 2px solid #111;
+      padding-top: 12px;
+      margin-top: 8px;
+    }
+    .free-badge { color: #16a34a; font-weight: 600; }
+    .strike { text-decoration: line-through; color: #bbb; margin-left: 4px; font-size: 0.8rem; }
+
+    /* Step 2 summary inside checkout card */
+    .confirm-section {
+      background: #f9f9f9;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .confirm-section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+    .confirm-section-value { font-size: 0.92rem; color: #333; line-height: 1.6; }
+
+    /* Buttons */
+    .checkout-btn {
+      width: 100%;
+      padding: 15px;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .checkout-btn:hover { background: #333; }
+    .checkout-btn:active { transform: scale(0.98); }
+    .checkout-btn:disabled { background: #999; cursor: not-allowed; }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #666;
+      cursor: pointer;
+      border: none;
+      background: none;
+      padding: 0;
+      margin-bottom: 20px;
+    }
+    .back-link:hover { color: #111; }
+
+    .step-content { display: none; }
+    .step-content.active { display: block; }
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #dc2626;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      margin-top: 16px;
+      display: none;
+    }
+    .cashfree-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: #888;
+      margin-top: 12px;
+    }
+    .cashfree-badge svg { width: 16px; height: 16px; }
   </style>
 </head>
 <body>
 
-  <!-- Minimal Header -->
   <header class="navbar" id="navbar">
     <div class="container navbar-container" style="justify-content: space-between;">
       <a href="index.html" class="logo">VKclothing</a>
-      <a href="cart.html" style="font-weight:600; text-decoration:none; color:var(--color-text);">Return to Cart</a>
+      <a href="cart.html" style="font-weight:600; text-decoration:none; color:var(--color-text); font-size:0.9rem;">← Return to Cart</a>
     </div>
   </header>
 
-  <main style="padding-top: 80px; background:#fcfcfc; min-height:100vh;">
-    
-    <div class="checkout-container">
-      
-      <!-- Checkout Flow -->
-      <div class="checkout-flow">
-        
-        <!-- STEP 1: Shipping -->
+  <main style="padding-top: 80px; min-height: 100vh;">
+    <div class="checkout-wrapper">
+
+      <!-- LEFT: Checkout Flow -->
+      <div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+          <div class="progress-step">
+            <div class="step-circle active" id="prog-1">1</div>
+            <span class="step-label active" id="prog-label-1">Delivery Address</span>
+          </div>
+          <div class="step-connector" id="prog-conn-1"></div>
+          <div class="progress-step">
+            <div class="step-circle" id="prog-2">2</div>
+            <span class="step-label" id="prog-label-2">Order Summary</span>
+          </div>
+        </div>
+
+        <!-- STEP 1: Address -->
         <div id="step-1" class="step-content active">
-          <div class="step-header">
-            <div class="step-number">1</div>
-            <h2 class="step-title">Shipping Address</h2>
-          </div>
-          
-          <div id="saved-addresses-container">
-            <div class="loading-spinner"></div>
-          </div>
+          <div class="checkout-card">
+            <div class="card-title">Select Delivery Address</div>
 
-          <div style="margin-top: 24px; display:none;" id="new-address-form-container">
-            <h3>Add New Address</h3>
-            <form id="new-address-form" style="margin-top:16px;">
-              <div class="form-row" style="display:flex;gap:16px;">
-                <div class="form-group" style="flex:1;"><label>First Name</label><input type="text" id="addr-fname" required></div>
-                <div class="form-group" style="flex:1;"><label>Last Name</label><input type="text" id="addr-lname" required></div>
-              </div>
-              <div class="form-group"><label>Phone Number (for delivery)</label><input type="tel" id="addr-phone" required></div>
-              <div class="form-group"><label>Address Line 1</label><input type="text" id="addr-line1" required></div>
-              <div class="form-group"><label>Address Line 2 (Optional)</label><input type="text" id="addr-line2"></div>
-              <div class="form-row" style="display:flex;gap:16px;">
-                <div class="form-group" style="flex:1;"><label>City</label><input type="text" id="addr-city" required></div>
-                <div class="form-group" style="flex:1;"><label>State</label><input type="text" id="addr-state" required></div>
-              </div>
-              <div class="form-row" style="display:flex;gap:16px;">
-                <div class="form-group" style="flex:1;"><label>PIN Code</label><input type="text" id="addr-zip" required></div>
-                <div class="form-group" style="flex:1;"><label>Country</label><input type="text" id="addr-country" value="India" readonly></div>
-              </div>
-              <button type="submit" class="btn btn-outline" id="save-address-btn" style="width:100%;">Save Address</button>
-            </form>
-          </div>
+            <div id="saved-addresses-container">
+              <div class="loading-spinner"></div>
+            </div>
 
-          <div class="nav-buttons">
-            <button class="btn btn-primary" onclick="goToStep(2)" style="margin-left:auto;" id="btn-to-payment">Continue to Payment</button>
+            <div style="margin-top: 20px; display:none;" id="new-address-form-container">
+              <div style="font-weight:600; margin-bottom:16px; font-size:0.95rem;">Add New Address</div>
+              <form id="new-address-form">
+                <div style="display:flex; gap:16px;">
+                  <div class="form-group" style="flex:1;"><label>First Name</label><input type="text" id="addr-fname" required></div>
+                  <div class="form-group" style="flex:1;"><label>Last Name</label><input type="text" id="addr-lname" required></div>
+                </div>
+                <div class="form-group"><label>Phone Number</label><input type="tel" id="addr-phone" required></div>
+                <div class="form-group"><label>Address Line 1</label><input type="text" id="addr-line1" required></div>
+                <div class="form-group"><label>Address Line 2 (Optional)</label><input type="text" id="addr-line2"></div>
+                <div style="display:flex; gap:16px;">
+                  <div class="form-group" style="flex:1;"><label>City</label><input type="text" id="addr-city" required></div>
+                  <div class="form-group" style="flex:1;"><label>State</label><input type="text" id="addr-state" required></div>
+                </div>
+                <div style="display:flex; gap:16px;">
+                  <div class="form-group" style="flex:1;"><label>PIN Code</label><input type="text" id="addr-zip" required></div>
+                  <div class="form-group" style="flex:1;"><label>Country</label><input type="text" id="addr-country" value="India" readonly></div>
+                </div>
+                <button type="submit" class="checkout-btn" id="save-address-btn" style="background:#444;">Save Address</button>
+              </form>
+            </div>
+
+            <button class="checkout-btn" style="margin-top:24px;" onclick="goToSummary()">Continue →</button>
           </div>
         </div>
 
-        <!-- STEP 2: Payment -->
+        <!-- STEP 2: Order Summary + Pay -->
         <div id="step-2" class="step-content">
-          <div class="step-header">
-            <div class="step-number">2</div>
-            <h2 class="step-title">Payment Method</h2>
-          </div>
-          
-          <div class="payment-option selected" id="opt-cashfree" onclick="selectPayment('Cashfree')">
-            <div style="font-weight:600;font-size:1.1rem;margin-bottom:4px;">Pay Securely Online</div>
-            <div style="color:var(--color-text-secondary);font-size:0.9rem;">UPI, Credit/Debit Cards, NetBanking, Wallets</div>
-          </div>
+          <button class="back-link" onclick="goToStep(1)">
+            ← Back to Address
+          </button>
+          <div class="checkout-card">
+            <div class="card-title">Order Summary</div>
 
-          <div class="nav-buttons">
-            <button class="btn btn-outline" onclick="goToStep(1)">Back</button>
-            <button class="btn btn-primary" onclick="goToStep(3)">Review Order</button>
-          </div>
-        </div>
+            <!-- Address Confirm -->
+            <div class="confirm-section">
+              <div class="confirm-section-label">Delivering To</div>
+              <div class="confirm-section-value" id="confirm-address">—</div>
+            </div>
 
-        <!-- STEP 3: Summary -->
-        <div id="step-3" class="step-content">
-          <div class="step-header">
-            <div class="step-number">3</div>
-            <h2 class="step-title">Order Confirmation</h2>
-          </div>
-          
-          <div style="background:var(--color-bg-soft); padding:24px; border-radius:var(--radius-md); margin-bottom:24px;">
-            <p><strong>Shipping To:</strong> <span id="confirm-address" style="color:#666;margin-left:8px;"></span></p>
-            <p style="margin-top:12px;"><strong>Payment Method:</strong> <span id="confirm-payment" style="color:#666;margin-left:8px;"></span></p>
-          </div>
+            <!-- Products list -->
+            <div class="confirm-section-label" style="margin-bottom:8px;">Items</div>
+            <div id="confirm-products"></div>
 
-          <div id="upi-confirm-container" style="display:none; background:#f0f9ff; padding:16px; border-radius:var(--radius-md); margin-bottom:24px; border:1px solid #bae6fd;">
-            <label style="display:flex; align-items:center; cursor:pointer;">
-              <input type="checkbox" id="upi-confirm-checkbox" style="margin-right:12px; transform:scale(1.2);">
-              <span><strong>I confirm that I have successfully scanned the QR code and paid ₹<span id="upi-confirm-amount"></span> via UPI.</strong></span>
-            </label>
-          </div>
+            <!-- Price -->
+            <div class="price-breakdown">
+              <div class="price-line"><span>Subtotal</span><span id="confirm-subtotal">₹0</span></div>
+              <div class="price-line"><span>Delivery Fee</span><span><span class="free-badge">FREE</span><span class="strike">₹49</span></span></div>
+              <div class="price-line total"><span>Total</span><span id="confirm-total">₹0</span></div>
+            </div>
 
-          <div id="checkout-error" class="form-message" style="display:none;"></div>
+            <div class="error-msg" id="checkout-error"></div>
 
-          <div class="nav-buttons" style="border-top:1px solid var(--color-border); padding-top:24px;">
-            <button class="btn btn-outline" onclick="goToStep(2)">Back</button>
-            <button class="btn btn-primary" id="place-order-btn" onclick="placeOrder()">Place Order</button>
+            <button class="checkout-btn" id="place-order-btn" onclick="placeOrder()" style="margin-top:20px; font-size:1.05rem; padding:17px;">
+              Pay ₹<span id="pay-total-amount">0</span> via Cashfree
+            </button>
+            <div class="cashfree-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Secured by Cashfree Payments
+            </div>
           </div>
         </div>
 
       </div>
 
-      <!-- Order Summary -->
-      <div class="order-summary-sidebar">
-        <h3 style="margin-bottom: 24px;">Order Summary</h3>
-        <div id="sidebar-products">
-          <!-- Populated by JS -->
-        </div>
-        
-        <div class="price-row">
-          <span>Subtotal</span>
-          <span id="checkout-subtotal">₹0</span>
-        </div>
-
-        <div class="price-row">
-          <span>Delivery Fee</span>
-          <span>
-            <span class="free-text">FREE</span>
-            <span class="strike">₹49</span>
-          </span>
-        </div>
-
-        <div class="price-row">
-          <span>Platform Fee</span>
-          <span class="free-text">FREE</span>
-        </div>
-
-        <hr>
-
-        <div class="price-row total-row">
-          <span>Total</span>
-          <span id="checkout-total">₹0</span>
+      <!-- RIGHT: Live Order Summary Sidebar -->
+      <div class="summary-card">
+        <div style="font-weight:700; font-size:1rem; margin-bottom:16px;">Your Cart</div>
+        <div id="sidebar-products"></div>
+        <div class="price-breakdown">
+          <div class="price-line"><span>Subtotal</span><span id="checkout-subtotal">₹0</span></div>
+          <div class="price-line"><span>Delivery</span><span><span class="free-badge">FREE</span><span class="strike">₹49</span></span></div>
+          <div class="price-line"><span>Platform Fee</span><span class="free-badge">FREE</span></div>
+          <div class="price-line total"><span>Total</span><span id="checkout-total">₹0</span></div>
         </div>
       </div>
-      
+
     </div>
   </main>
 
@@ -304,12 +351,11 @@
   <script src="js/api.js?v=2"></script>
   <script src="js/auth.js?v=2"></script>
   <script src="js/app.js?v=2"></script>
-  <script src="js/checkout.js?v=7"></script>
+  <script src="js/checkout.js?v=8"></script>
 
   <footer class="footer">
     <div class="container">
       <div class="footer-bottom">
-        
         <div class="footer-policies" style="margin-bottom: 15px; display:flex; gap:20px; flex-wrap:wrap; justify-content:center; opacity:0.8; font-size:0.85rem;">
           <a href="refund-policy.html">Refund Policy</a>
           <a href="shipping-policy.html">Shipping Policy</a>
