@@ -83,33 +83,43 @@
   <script src="js/api.js?v=2"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
-      // 1. Clear cart so back button to checkout redirects to cart page (empty)
+      // 1. Clear cart — prevents going back to a filled checkout
       localStorage.removeItem('vk_cart');
 
-      // 2. Replace history so pressing Back NEVER goes back to checkout or Cashfree
-      //    It will instead go to previous page before checkout (usually shop/cart)
+      // 2. Replace history so Back button goes to shop, not checkout/Cashfree
       history.replaceState(null, '', 'order-success.html');
 
-      // 3. Get order ID from URL
+      // 3. Get order_id from URL (Cashfree appends it)
       const urlParams = new URLSearchParams(window.location.search);
       const orderId = urlParams.get('order_id') || urlParams.get('orderId');
-      
-      if (orderId) {
-        document.getElementById('display-order-id').textContent = orderId;
-        
-        // 4. Update payment status to Paid in Google Sheets
-        try {
-          await API._get('updatePaymentStatus', { 
-            orderId: orderId, 
-            status: 'Paid',
-            source: 'return_url'
-          });
-          console.log('Payment status updated to Paid for:', orderId);
-        } catch (e) {
-          console.warn('Could not sync payment status instantly (webhook will handle it):', e);
-        }
-      } else {
+
+      if (!orderId) {
         document.getElementById('display-order-id').textContent = 'Order confirmed';
+        return;
+      }
+
+      document.getElementById('display-order-id').textContent = orderId;
+
+      // 4. VERIFY payment server-side — do NOT trust redirect alone
+      try {
+        const verifyRes = await fetch(`/api/verify-payment?order_id=${orderId}`);
+        const verifyData = await verifyRes.json();
+
+        if (verifyData.verified && verifyData.payment_status === 'SUCCESS') {
+          // 5. Update order status to Paid in Google Sheets
+          await API._get('updatePaymentStatus', {
+            orderId: orderId,
+            status: 'Paid',
+            cfPaymentId: verifyData.cf_payment_id || ''
+          });
+          console.log('✅ Payment verified & order marked Paid:', orderId);
+        } else {
+          // Payment not confirmed yet (might still be processing)
+          console.warn('⚠️ Payment not yet confirmed. Status:', verifyData.payment_status);
+          // Webhook will handle the final confirmation
+        }
+      } catch (e) {
+        console.warn('Server verification failed (webhook will handle):', e);
       }
     });
   </script>

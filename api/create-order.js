@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { order_id, order_amount, customer_details, order_meta } = req.body;
+    const { order_id, order_amount, customer_details } = req.body;
     
     const appId = process.env.CASHFREE_APP_ID;
     const secretKey = process.env.CASHFREE_SECRET_KEY;
@@ -21,10 +21,13 @@ export default async function handler(req, res) {
       order_amount: Number(order_amount),
       order_currency: 'INR',
       customer_details: customer_details,
-      order_meta: order_meta
+      order_meta: {
+        // notify_url is where Cashfree POSTs webhook events
+        notify_url: `${process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : ''}/api/cashfree-webhook`
+      }
     };
 
-    console.log("Creating Cashfree order:", JSON.stringify(payload));
+    console.log('Creating Cashfree order:', JSON.stringify(payload));
 
     const response = await fetch(cfUrl, {
       method: 'POST',
@@ -39,7 +42,7 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log("Cashfree response:", JSON.stringify(data));
+    console.log('Cashfree response:', JSON.stringify(data));
 
     if (!response.ok) {
       return res.status(response.status).json({ 
@@ -51,14 +54,10 @@ export default async function handler(req, res) {
 
     const sessionId = data.payment_session_id;
 
-    // Construct the hosted payment page URL (Sandbox)
-    // Switch to https://payments.cashfree.com/forms/view?id= for Production
-    const paymentLink = `https://payments-test.cashfree.com/forms/view?id=${sessionId}`;
-
     return res.status(200).json({ 
       success: true, 
       payment_session_id: sessionId,
-      payment_link: paymentLink
+      cf_order_id: data.cf_order_id
     });
 
   } catch (err) {

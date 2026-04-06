@@ -231,32 +231,37 @@ async function placeOrder() {
 
     btn.textContent = 'Redirecting to Payment...';
 
-    // 2. Create Cashfree payment session via secure proxy
-    const cfRes = await fetch(CASHFREE_CONFIG.API_BASE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        order_id: result.orderId,
-        order_amount: cartTotal,
-        customer_details: {
-          customer_id: userId,
-          customer_name: 'Customer',
-          customer_email: 'customer@vkclothing.com',
-          customer_phone: userPhone
-        },
-        order_meta: {
-          return_url: window.location.origin + CASHFREE_CONFIG.RETURN_URL + '?order_id={order_id}'
-        }
-      })
-    });
+      // 2. Create Cashfree payment session via secure proxy
+      const cfRes = await fetch(CASHFREE_CONFIG.API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: result.orderId,
+          order_amount: cartTotal,
+          customer_details: {
+            customer_id: userId,
+            customer_name: 'Customer',
+            customer_email: 'customer@vkclothing.com',
+            customer_phone: userPhone
+          }
+        })
+      });
 
-    const cfData = await cfRes.json();
+      const cfData = await cfRes.json();
 
-    if (cfData.success && cfData.payment_link) {
-      window.location.href = cfData.payment_link;
-    } else {
-      throw new Error(cfData.error || 'Payment gateway error. Please try again.');
-    }
+      if (!cfData.success || !cfData.payment_session_id) {
+        throw new Error(cfData.error || 'Payment gateway error. Please try again.');
+      }
+
+      btn.textContent = 'Opening Payment...';
+
+      // 3. Use Cashfree JS SDK to open hosted checkout
+      const cashfree = Cashfree({ mode: 'sandbox' }); // Change to 'production' when going live
+      await cashfree.checkout({
+        paymentSessionId: cfData.payment_session_id,
+        redirectTarget: '_self',           // redirects in same tab
+        returnUrl: window.location.origin + CASHFREE_CONFIG.RETURN_URL + '?order_id=' + result.orderId
+      });
 
   } catch (err) {
     console.error('Checkout error:', err);
