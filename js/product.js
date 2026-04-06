@@ -11,6 +11,7 @@ let parsedSizes = [];  // [sizeName]
 
 let selectedColor = null;
 let selectedSize = null;
+let currentImageIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('product-detail');
@@ -133,19 +134,54 @@ function renderProductUI(container) {
   const colorImages = currentImages.filter(img =>
     img.color.trim().toLowerCase() === (selectedColor || '').trim().toLowerCase()
   );
-  const mainImageUrl = colorImages.length > 0 ? colorImages[0].imageUrl : (currentProduct.imageUrl || '');
-  
+  const allImgUrls = colorImages.length > 0
+    ? colorImages.map(img => img.imageUrl)
+    : (currentProduct.imageUrl ? [currentProduct.imageUrl] : []);
+
+  // Clamp index after color switch
+  if (currentImageIndex >= allImgUrls.length) currentImageIndex = 0;
+  const mainImageUrl = allImgUrls[currentImageIndex] || '';
+  const hasMultiple = allImgUrls.length > 1;
+
   let galleryHtml = `
     <div class="product-gallery">
-      <div class="product-detail-main-img" style="margin-bottom:16px;">
-        ${mainImageUrl 
-          ? `<img id="main-product-img" src="${mainImageUrl}" alt="${currentProduct.name}">` 
-          : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#999;aspect-ratio:3/4;">No Image</div>`
+      <div class="product-detail-main-img" id="img-slide-wrapper"
+           style="margin-bottom:16px; position:relative; overflow:hidden; user-select:none;">
+        ${mainImageUrl
+          ? `<img id="main-product-img" src="${mainImageUrl}" alt="${currentProduct.name}" style="width:100%;display:block;transition:opacity 0.2s;">`
+          : `<div style="width:100%;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#999;">No Image</div>`
         }
+        ${hasMultiple ? `
+          <button id="img-prev-btn" aria-label="Previous image"
+            style="position:absolute;left:10px;top:50%;transform:translateY(-50%);z-index:10;
+                   width:36px;height:36px;border-radius:50%;border:none;
+                   background:rgba(255,255,255,0.88);box-shadow:0 2px 8px rgba(0,0,0,0.18);
+                   display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
+          <button id="img-next-btn" aria-label="Next image"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:10;
+                   width:36px;height:36px;border-radius:50%;border:none;
+                   background:rgba(255,255,255,0.88);box-shadow:0 2px 8px rgba(0,0,0,0.18);
+                   display:flex;align-items:center;justify-content:center;cursor:pointer;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+          <div style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:6px;">
+            ${allImgUrls.map((_, i) => `
+              <div style="width:7px;height:7px;border-radius:50%;background:${i === currentImageIndex ? '#fff' : 'rgba(255,255,255,0.5)'};box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>
+            `).join('')}
+          </div>
+        ` : ''}
       </div>
-      <div class="thumbnails" style="display:flex; gap:12px; overflow-x:auto;">
-        ${colorImages.map((img, idx) => `
-          <img src="${img.imageUrl}" class="thumbnail ${idx === 0 ? 'active' : ''}" data-url="${img.imageUrl}" style="width:70px;height:90px;object-fit:cover;cursor:pointer;border:2px solid ${idx === 0 ? 'var(--color-primary)' : 'transparent'};">
+      <div class="thumbnails" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:4px;">
+        ${allImgUrls.map((url, idx) => `
+          <img src="${url}" class="thumbnail ${idx === currentImageIndex ? 'active' : ''}" data-idx="${idx}" data-url="${url}"
+               style="width:70px;height:90px;object-fit:cover;cursor:pointer;border-radius:6px;
+                      border:2px solid ${idx === currentImageIndex ? '#111' : 'transparent'};flex-shrink:0;transition:border-color 0.2s;">
         `).join('')}
       </div>
     </div>
@@ -255,14 +291,57 @@ function renderProductUI(container) {
 function attachEventListeners() {
   const container = document.getElementById('product-detail');
 
-  // Thumbnails click
-  container.querySelectorAll('.thumbnail').forEach(thumb => {
-    thumb.addEventListener('click', (e) => {
-      container.querySelectorAll('.thumbnail').forEach(t => t.style.borderColor = 'transparent');
-      e.target.style.borderColor = 'var(--color-primary)';
-      document.getElementById('main-product-img').src = e.target.dataset.url;
+  // ── Image navigation helper ─────────────────────────────────────
+  function goToImage(idx) {
+    const thumbs = container.querySelectorAll('.thumbnail');
+    const allUrls = [...thumbs].map(t => t.dataset.url);
+    if (!allUrls.length) return;
+    currentImageIndex = (idx + allUrls.length) % allUrls.length;
+    const mainImg = document.getElementById('main-product-img');
+    if (mainImg) {
+      mainImg.style.opacity = '0';
+      setTimeout(() => { mainImg.src = allUrls[currentImageIndex]; mainImg.style.opacity = '1'; }, 150);
+    }
+    thumbs.forEach((t, i) => {
+      t.style.borderColor = i === currentImageIndex ? '#111' : 'transparent';
     });
+    // Re-render dots
+    const dots = container.querySelectorAll('#img-slide-wrapper > div > div');
+    dots.forEach((d, i) => {
+      d.style.background = i === currentImageIndex ? '#fff' : 'rgba(255,255,255,0.5)';
+    });
+  }
+
+  // Thumbnails click
+  container.querySelectorAll('.thumbnail').forEach((thumb, idx) => {
+    thumb.addEventListener('click', () => goToImage(idx));
   });
+
+  // Arrow buttons
+  const prevBtn = document.getElementById('img-prev-btn');
+  const nextBtn = document.getElementById('img-next-btn');
+  if (prevBtn) prevBtn.addEventListener('click', () => goToImage(currentImageIndex - 1));
+  if (nextBtn) nextBtn.addEventListener('click', () => goToImage(currentImageIndex + 1));
+
+  // ── Touch/Swipe support ──────────────────────────────────────────
+  const slideWrapper = document.getElementById('img-slide-wrapper');
+  if (slideWrapper) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    slideWrapper.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    slideWrapper.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      // Only trigger if horizontal swipe is dominant (not a scroll)
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0) goToImage(currentImageIndex + 1); // swipe left → next
+        else        goToImage(currentImageIndex - 1); // swipe right → prev
+      }
+    }, { passive: true });
+  }
 
   // Color selection
   container.querySelectorAll('.color-circle').forEach(btn => {
@@ -279,6 +358,9 @@ function attachEventListeners() {
         return !!variant;
       });
       selectedSize = availableSize || parsedSizes[0];
+      
+      // Reset to first image of the new color
+      currentImageIndex = 0;
       
       // Re-render — gallery will automatically show correct color images
       renderProductUI(container);
