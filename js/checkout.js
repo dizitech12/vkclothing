@@ -6,11 +6,21 @@
 let selectedAddressId = null;
 let cartTotal = 0;
 
+// Returns Buy Now item (sessionStorage) if present, else full cart
+function getCheckoutItems() {
+  const buyNow = sessionStorage.getItem('vk_buy_now');
+  if (buyNow) {
+    try { return JSON.parse(buyNow); } catch(e) {}
+  }
+  return getCart();
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (!window.Auth || !Auth.requireAuth('checkout.html')) return;
 
-  const cart = getCart();
+  const cart = getCheckoutItems();
   if (cart.length === 0) {
+    sessionStorage.removeItem('vk_buy_now');
     window.location.href = 'cart.html';
     return;
   }
@@ -171,8 +181,8 @@ function goToSummary() {
   const addrText = card ? card.innerText.replace('✓ Selected', '').trim().split('\n').filter(l => l.trim()).join(', ') : 'Selected Address';
   document.getElementById('confirm-address').textContent = addrText;
 
-  // Products
-  const cart = getCart();
+  // Products — use buy-now item or full cart
+  const cart = getCheckoutItems();
   document.getElementById('confirm-products').innerHTML = cart.map(item => `
     <div class="summary-item-row">
       <img class="summary-item-img" src="${item.imageUrl || ''}" alt="${item.name}"
@@ -216,7 +226,7 @@ async function placeOrder() {
     document.head.appendChild(s);
   }
 
-  const cart = getCart();
+  const cart = getCheckoutItems();
   const userId = Auth.getUserId() || 'GUEST';
   const userPhone = Auth.getUserPhone() || '';
 
@@ -242,6 +252,9 @@ async function placeOrder() {
     // 1. Save order as Pending in Google Sheets
     const result = await API.createOrder(orderData);
     if (!result.success) throw new Error(result.error || 'Failed to create order.');
+
+    // Clear buy-now session after order is created
+    sessionStorage.removeItem('vk_buy_now');
 
     btn.innerHTML = `
       <span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">

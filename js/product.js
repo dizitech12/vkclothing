@@ -462,12 +462,34 @@ function attachEventListeners() {
     });
 
     // ── Buy Now ───────────────────────────────────────────────────
+    // Does NOT add to cart — only checkouts this one product
     const buyNowBtn = document.getElementById('buy-now-btn');
     if (buyNowBtn) {
       buyNowBtn.addEventListener('click', () => {
-        if (addToCartLogic()) {
-          window.location.href = 'checkout.html';
+        const quantity = parseInt(document.getElementById('qty-input').value) || 1;
+
+        if (variantStock <= 0) {
+          showToast('This item is out of stock.', 'error');
+          return;
         }
+        if (quantity > variantStock) {
+          showToast(`Only ${variantStock} available in this size/color.`, 'warning');
+          return;
+        }
+
+        // Store just THIS product as a temporary "buy now" session
+        const buyNowItem = [{
+          id: currentProduct.id,
+          name: currentProduct.name,
+          price: currentProduct.price,
+          imageUrl: document.getElementById('main-product-img')?.src || currentProduct.imageUrl,
+          quantity: quantity,
+          size: selectedSize,
+          color: selectedColor
+        }];
+
+        sessionStorage.setItem('vk_buy_now', JSON.stringify(buyNowItem));
+        window.location.href = 'checkout.html';
       });
     }
   }
