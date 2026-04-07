@@ -13,8 +13,12 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: 'Payment gateway not configured. Missing API keys.' });
     }
 
-    // Sandbox URL — switch to https://api.cashfree.com/pg/orders for Production
-    const cfUrl = 'https://sandbox.cashfree.com/pg/orders';
+    // Auto-switch URL based on CASHFREE_ENV env variable
+    // Set CASHFREE_ENV=production in Vercel for live payments
+    const isProduction = process.env.CASHFREE_ENV === 'production';
+    const cfUrl = isProduction
+      ? 'https://api.cashfree.com/pg/orders'
+      : 'https://sandbox.cashfree.com/pg/orders';
 
     const payload = {
       order_id: order_id,

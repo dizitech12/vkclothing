@@ -294,8 +294,8 @@ async function placeOrder() {
           Opening secure payment page...
         </span>`;
 
-      // 3. Use Cashfree JS SDK to open hosted checkout
-      const cashfree = Cashfree({ mode: 'sandbox' }); // Change to 'production' when going live
+      // 3. Use Cashfree JS SDK — production mode
+      const cashfree = Cashfree({ mode: 'production' });
       await cashfree.checkout({
         paymentSessionId: cfData.payment_session_id,
         redirectTarget: '_self',           // redirects in same tab

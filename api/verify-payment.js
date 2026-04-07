@@ -21,8 +21,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Sandbox: sandbox.cashfree.com | Production: api.cashfree.com
-    const url = `https://sandbox.cashfree.com/pg/orders/${order_id}/payments`;
+    // Auto-switch URL based on CASHFREE_ENV env variable
+    const isProduction = process.env.CASHFREE_ENV === 'production';
+    const url = isProduction
+      ? `https://api.cashfree.com/pg/orders/${order_id}/payments`
+      : `https://sandbox.cashfree.com/pg/orders/${order_id}/payments`;
 
     const response = await fetch(url, {
       method: 'GET',
