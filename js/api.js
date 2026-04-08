@@ -5,6 +5,10 @@
 
 const API = {
 
+  // In-flight request deduplication — prevents duplicate network calls
+  // when multiple parts of the page call the same method simultaneously
+  _pending: {},
+
   // ---------- Helper: GET request ----------
   async _get(params) {
     try {
@@ -96,25 +100,30 @@ const API = {
   },
 
   async getProducts() {
-    // Check local cache first
+    // 1. Return from localStorage cache if fresh
     const cached = localStorage.getItem('vk_products');
     const cachedTime = localStorage.getItem('vk_products_time');
     if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < CONFIG.LOCAL_CACHE_DURATION) {
       return JSON.parse(cached);
     }
+    // 2. Deduplicate — if a fetch is already in-flight, share it
+    if (this._pending.products) return this._pending.products;
 
-    try {
-      const data = await this._get({ action: 'getProducts' });
-      // Cache locally
-      localStorage.setItem('vk_products', JSON.stringify(data));
-      localStorage.setItem('vk_products_time', Date.now().toString());
-      return data;
-    } catch (err) {
-      console.error('Failed to fetch products:', err);
-      // Return stale cache if available
-      if (cached) return JSON.parse(cached);
-      return [];
-    }
+    this._pending.products = (async () => {
+      try {
+        const data = await this._get({ action: 'getProducts' });
+        localStorage.setItem('vk_products', JSON.stringify(data));
+        localStorage.setItem('vk_products_time', Date.now().toString());
+        return data;
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        if (cached) return JSON.parse(cached);
+        return [];
+      } finally {
+        delete this._pending.products;
+      }
+    })();
+    return this._pending.products;
   },
 
   async getProduct(id) {
@@ -173,16 +182,23 @@ const API = {
     if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < CONFIG.LOCAL_CACHE_DURATION) {
       return JSON.parse(cached);
     }
-    try {
-      const data = await this._get({ action: 'getProductVariants' });
-      localStorage.setItem('vk_variants', JSON.stringify(data));
-      localStorage.setItem('vk_variants_time', Date.now().toString());
-      return data;
-    } catch (err) {
-      console.error('Failed to fetch variants:', err);
-      if (cached) return JSON.parse(cached);
-      return [];
-    }
+    if (this._pending.variants) return this._pending.variants;
+
+    this._pending.variants = (async () => {
+      try {
+        const data = await this._get({ action: 'getProductVariants' });
+        localStorage.setItem('vk_variants', JSON.stringify(data));
+        localStorage.setItem('vk_variants_time', Date.now().toString());
+        return data;
+      } catch (err) {
+        console.error('Failed to fetch variants:', err);
+        if (cached) return JSON.parse(cached);
+        return [];
+      } finally {
+        delete this._pending.variants;
+      }
+    })();
+    return this._pending.variants;
   },
 
   async saveProductVariants(productId, variants) {
@@ -203,16 +219,23 @@ const API = {
     if (cached && cachedTime && (Date.now() - parseInt(cachedTime)) < CONFIG.LOCAL_CACHE_DURATION) {
       return JSON.parse(cached);
     }
-    try {
-      const data = await this._get({ action: 'getProductImages' });
-      localStorage.setItem('vk_images', JSON.stringify(data));
-      localStorage.setItem('vk_images_time', Date.now().toString());
-      return data;
-    } catch (err) {
-      console.error('Failed to fetch images:', err);
-      if (cached) return JSON.parse(cached);
-      return [];
-    }
+    if (this._pending.images) return this._pending.images;
+
+    this._pending.images = (async () => {
+      try {
+        const data = await this._get({ action: 'getProductImages' });
+        localStorage.setItem('vk_images', JSON.stringify(data));
+        localStorage.setItem('vk_images_time', Date.now().toString());
+        return data;
+      } catch (err) {
+        console.error('Failed to fetch images:', err);
+        if (cached) return JSON.parse(cached);
+        return [];
+      } finally {
+        delete this._pending.images;
+      }
+    })();
+    return this._pending.images;
   },
 
   async saveProductImages(productId, images) {

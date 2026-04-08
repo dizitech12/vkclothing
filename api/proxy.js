@@ -1,9 +1,14 @@
+// Module-level server-side cache (persists within the same Vercel function warm instance)
+const _serverCache = new Map();
+const SERVER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Only these public GET actions are safe to cache server-side
+const CACHEABLE_ACTIONS = ['getProducts', 'getProductVariants', 'getProductImages'];
+
 export default async function handler(req, res) {
   try {
     const url = process.env.API_URL;
     
-    console.log("DEBUG - Loaded API_URL:", url);
-
     if (!url) {
       return res.status(500).json({ success: false, error: "API_URL is missing in environment variables" });
     }
@@ -21,18 +26,26 @@ export default async function handler(req, res) {
     const reqData = isGet ? req.query : req.body;
     const action = reqData?.action;
 
-    // Check if the requested action is an admin action
+    // Admin action guard
     if (action && adminActions.includes(action)) {
       const token = req.headers['x-admin-token'];
       if (!token) {
         return res.status(401).json({ success: false, error: "Unauthorized: Missing x-admin-token" });
       }
-
-      // Inject the secret
       if (isGet) {
         req.query.adminSecret = ADMIN_SECRET;
       } else {
         req.body.adminSecret = ADMIN_SECRET;
+      }
+    }
+
+    // ── Server-side cache for public read actions ─────────────────
+    if (isGet && action && CACHEABLE_ACTIONS.includes(action)) {
+      const cacheKey = action;
+      const cached = _serverCache.get(cacheKey);
+      if (cached && (Date.now() - cached.ts) < SERVER_CACHE_TTL) {
+        res.setHeader('X-Cache', 'HIT');
+        return res.status(200).json(cached.data);
       }
     }
 
@@ -41,9 +54,7 @@ export default async function handler(req, res) {
 
     const options = {
       method: req.method,
-      headers: {
-        'Accept': 'application/json'
-      },
+      headers: { 'Accept': 'application/json' },
       redirect: 'follow',
       signal: AbortSignal.timeout(20000)
     };
@@ -58,12 +69,19 @@ export default async function handler(req, res) {
     
     try {
       const jsonData = JSON.parse(data);
+
+      // Store in server-side cache for eligible actions
+      if (isGet && action && CACHEABLE_ACTIONS.includes(action)) {
+        _serverCache.set(action, { data: jsonData, ts: Date.now() });
+        res.setHeader('X-Cache', 'MISS');
+      }
+
       res.status(200).json(jsonData);
     } catch (parseError) {
       console.error("Google Apps Script returned non-JSON:", data.substring(0, 500));
       res.status(502).json({
         success: false,
-        error: "Google Apps Script returned HTML instead of JSON. Check if 'Who has access' is set to 'Anyone' in your deployment settings.",
+        error: "Google Apps Script returned HTML instead of JSON. Check deployment settings.",
         details: data.substring(0, 300)
       });
     }
