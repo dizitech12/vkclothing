@@ -31,7 +31,6 @@ export default async function handler(req, res) {
       }
     };
 
-    console.log('Creating Cashfree order:', JSON.stringify(payload));
 
     const response = await fetch(cfUrl, {
       method: 'POST',
@@ -46,7 +45,6 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log('Cashfree response:', JSON.stringify(data));
 
     if (!response.ok) {
       return res.status(response.status).json({ 
@@ -60,8 +58,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ 
       success: true, 
-      payment_session_id: sessionId,
-      cf_order_id: data.cf_order_id
+      payment_session_id: data.payment_session_id
     });
 
   } catch (err) {

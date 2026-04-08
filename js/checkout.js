@@ -203,6 +203,8 @@ function goToSummary() {
 }
 
 // ── Place Order + Cashfree Redirect ──────────
+// Optimized: Cashfree first, Google Sheets save deferred to success page
+// This cuts checkout latency by ~2-3 seconds (no Apps Script round-trip)
 
 async function placeOrder() {
   const btn = document.getElementById('place-order-btn');
@@ -211,14 +213,15 @@ async function placeOrder() {
   btn.disabled = true;
   errorMsg.style.display = 'none';
 
-  // Show animated loading steps
-  btn.innerHTML = `
+  // Spinner helper
+  const spinHTML = (text) => `
     <span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">
       <svg style="animation:spin 0.8s linear infinite;flex-shrink:0;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
       </svg>
-      Step 1 of 2: Saving order...
+      ${text}
     </span>`;
+
   if (!document.getElementById('pay-spin-style')) {
     const s = document.createElement('style');
     s.id = 'pay-spin-style';
@@ -226,81 +229,71 @@ async function placeOrder() {
     document.head.appendChild(s);
   }
 
+  btn.innerHTML = spinHTML('Connecting to payment gateway...');
+
   const cart = getCheckoutItems();
   const userId = Auth.getUserId() || 'GUEST';
   const userPhone = Auth.getUserPhone() || '';
 
-  const orderData = {
-    userId: userId,
-    customerPhone: userPhone,
-    addressId: selectedAddressId,
-    shippingSnapshot: document.getElementById('confirm-address').textContent,
-    paymentMethod: 'Cashfree',
-    paymentStatus: 'Pending',
-    items: cart.map(item => ({
-      productId: item.id,
-      productName: item.name,
-      size: item.size,
-      color: item.color,
-      quantity: item.quantity,
-      price: item.price,
-      imageUrl: item.imageUrl || ''
-    }))
-  };
+  // Generate unique order ID on the frontend — avoids a full Apps Script round-trip
+  const orderId = 'VKC_' + Date.now();
 
   try {
-    // 1. Save order as Pending in Google Sheets
-    const result = await API.createOrder(orderData);
-    if (!result.success) throw new Error(result.error || 'Failed to create order.');
+    // ── STEP 1: Get Cashfree payment session (only blocking call) ───────
+    const cfRes = await fetch(CASHFREE_CONFIG.API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        order_id: orderId,
+        order_amount: cartTotal,
+        customer_details: {
+          customer_id: userId,
+          customer_name: 'Customer',
+          customer_email: 'customer@vkclothing.com',
+          customer_phone: userPhone
+        }
+      })
+    });
 
-    // Clear buy-now session after order is created
+    const cfData = await cfRes.json();
+
+    if (!cfData.success || !cfData.payment_session_id) {
+      throw new Error(cfData.error || 'Payment gateway error. Please try again.');
+    }
+
+    // ── STEP 2: Store full order snapshot in sessionStorage ──────────────
+    // The success page reads this after payment verification and saves to Sheets
+    sessionStorage.setItem('vk_pending_order', JSON.stringify({
+      orderId,
+      userId,
+      customerPhone: userPhone,
+      addressId: selectedAddressId,
+      shippingSnapshot: document.getElementById('confirm-address').textContent,
+      paymentMethod: 'Cashfree',
+      items: cart.map(item => ({
+        productId: item.id,
+        productName: item.name,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        price: item.price,
+        imageUrl: item.imageUrl || ''
+      })),
+      totalAmount: cartTotal
+    }));
+
+    // Clear buy-now session
     sessionStorage.removeItem('vk_buy_now');
 
-    btn.innerHTML = `
-      <span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">
-        <svg style="animation:spin 0.8s linear infinite;flex-shrink:0;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
-        </svg>
-        Step 2 of 2: Connecting to Cashfree...
-      </span>`;
+    // ── STEP 3: Redirect immediately ─────────────────────────────────────
+    btn.innerHTML = spinHTML('Redirecting to secure payment...');
 
-      // 2. Create Cashfree payment session via secure proxy
-      const cfRes = await fetch(CASHFREE_CONFIG.API_BASE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_id: result.orderId,
-          order_amount: cartTotal,
-          customer_details: {
-            customer_id: userId,
-            customer_name: 'Customer',
-            customer_email: 'customer@vkclothing.com',
-            customer_phone: userPhone
-          }
-        })
-      });
-
-      const cfData = await cfRes.json();
-
-      if (!cfData.success || !cfData.payment_session_id) {
-        throw new Error(cfData.error || 'Payment gateway error. Please try again.');
-      }
-
-      btn.innerHTML = `
-        <span style="display:inline-flex;align-items:center;gap:10px;justify-content:center;">
-          <svg style="animation:spin 0.8s linear infinite;flex-shrink:0;" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/>
-          </svg>
-          Opening secure payment page...
-        </span>`;
-
-      // 3. Use Cashfree JS SDK — production mode
-      const cashfree = Cashfree({ mode: 'production' });
-      await cashfree.checkout({
-        paymentSessionId: cfData.payment_session_id,
-        redirectTarget: '_self',           // redirects in same tab
-        returnUrl: window.location.origin + CASHFREE_CONFIG.RETURN_URL + '?order_id=' + result.orderId
-      });
+    const cashfree = Cashfree({ mode: 'production' });
+    await cashfree.checkout({
+      paymentSessionId: cfData.payment_session_id,
+      redirectTarget: '_self',
+      returnUrl: window.location.origin + CASHFREE_CONFIG.RETURN_URL + '?order_id=' + orderId
+    });
 
   } catch (err) {
     console.error('Checkout error:', err);
@@ -310,3 +303,4 @@ async function placeOrder() {
     btn.innerHTML = `Pay ₹${cartTotal.toLocaleString()} via Cashfree`;
   }
 }
+

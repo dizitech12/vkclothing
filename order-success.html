@@ -147,19 +147,33 @@
         if (verifyData.verified && verifyData.payment_status === 'SUCCESS') {
           // ✅ Genuine successful payment
           localStorage.removeItem('vk_cart'); // clear cart ONLY on confirmed success
+          sessionStorage.removeItem('vk_buy_now');
 
           document.getElementById('success-order-id').textContent = orderId;
           show('success-panel');
 
-          // Update order status to Paid in Google Sheets
+          // ── Save order to Google Sheets now (deferred from checkout for speed) ──
           try {
-            await API._get('updatePaymentStatus', {
-              orderId: orderId,
-              status: 'Paid',
-              cfPaymentId: verifyData.cf_payment_id || ''
-            });
+            const pendingOrder = sessionStorage.getItem('vk_pending_order');
+            if (pendingOrder) {
+              const orderData = JSON.parse(pendingOrder);
+              await API.createOrder({
+                ...orderData,
+                paymentStatus: 'Paid',
+                cfPaymentId: verifyData.cf_payment_id || ''
+              });
+              sessionStorage.removeItem('vk_pending_order');
+            } else {
+              // Fallback: order was already saved (e.g. webhook) — just update status
+              await API._post({
+                action: 'updatePaymentStatus',
+                orderId: orderId,
+                paymentStatus: 'Paid',
+                cfPaymentId: verifyData.cf_payment_id || ''
+              });
+            }
           } catch (e) {
-            console.warn('Status sync deferred to webhook:', e);
+            console.warn('Order save deferred to webhook:', e);
           }
 
         } else {
