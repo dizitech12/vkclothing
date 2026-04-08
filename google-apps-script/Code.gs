@@ -18,7 +18,7 @@ var IMAGES_CACHE_KEY = 'images_cache';
 var FULL_PRODUCTS_CACHE_KEY = 'full_products_cache';
 var CACHE_DURATION = 300; // 5 minutes
 
-var ADMIN_SECRET = "CHANGE_THIS_SECRET";  // simple secret for admin action protection
+var ADMIN_SECRET = "vk_admin_123";  // must match proxy.js ADMIN_SECRET
 
 // ---- Helper: Get or Create Sheet ----
 function getOrCreateSheet(name, headers) {
@@ -64,7 +64,7 @@ function doGet(e) {
       case 'getProductVariants': result = getProductVariants(); break;
       case 'getProductImages': result = getProductImages(); break;
       case 'getOrders': 
-        if (e.parameter.adminSecret !== ADMIN_SECRET) return { error: 'Unauthorized' };
+        if (e.parameter.adminSecret !== ADMIN_SECRET) { result = { error: 'Unauthorized' }; break; }
         result = getOrders(); 
         break;
       case 'getAddresses': result = getAddresses(e.parameter.userId); break;
@@ -72,23 +72,23 @@ function doGet(e) {
       case 'getUserOrders': result = getUserOrders(e.parameter.userId); break;
       case 'verifyUser': result = verifyUser(e.parameter.userId); break;
       case 'getAnalytics': 
-        if (e.parameter.adminSecret !== ADMIN_SECRET) return { error: 'Unauthorized' };
+        if (e.parameter.adminSecret !== ADMIN_SECRET) { result = { error: 'Unauthorized' }; break; }
         result = getAnalytics(e.parameter.refresh === 'true'); 
         break;
       case 'getAnalyticsSummary': 
-        if (e.parameter.adminSecret !== ADMIN_SECRET) return { error: 'Unauthorized' };
+        if (e.parameter.adminSecret !== ADMIN_SECRET) { result = { error: 'Unauthorized' }; break; }
         result = getAnalyticsSummary(e.parameter.refresh === 'true'); 
         break;
       case 'getWeeklySales': 
-        if (e.parameter.adminSecret !== ADMIN_SECRET) return { error: 'Unauthorized' };
+        if (e.parameter.adminSecret !== ADMIN_SECRET) { result = { error: 'Unauthorized' }; break; }
         result = getWeeklySales(); 
         break;
       case 'getOrdersPerDay': 
-        if (e.parameter.adminSecret !== ADMIN_SECRET) return { error: 'Unauthorized' };
+        if (e.parameter.adminSecret !== ADMIN_SECRET) { result = { error: 'Unauthorized' }; break; }
         result = getOrdersPerDay(); 
         break;
       case 'getCustomerGrowth': 
-        if (e.parameter.adminSecret !== ADMIN_SECRET) return { error: 'Unauthorized' };
+        if (e.parameter.adminSecret !== ADMIN_SECRET) { result = { error: 'Unauthorized' }; break; }
         result = getCustomerGrowth(); 
         break;
       default: result = { error: 'Invalid action' };
