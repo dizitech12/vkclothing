@@ -7,14 +7,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  const adminSecret = sessionStorage.getItem('vk_admin_secret') || '';
-  if (!adminSecret) {
+  const adminToken = sessionStorage.getItem('vk_admin_token') || '';
+  if (!adminToken) {
     showError("Admin session expired. Please log in again.");
     return;
   }
 
   try {
-    const orders = await API.getOrders(adminSecret);
+    const orders = await API.getOrders();
     const orderItems = orders.filter(o => o.orderId === orderId);
 
     if (orderItems.length === 0) {
