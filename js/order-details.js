@@ -137,8 +137,18 @@ async function loadOrderDetails() {
             <strong style="display:block; margin-bottom:4px;">Delivery details:</strong>
             ${orderObj.shippingSnapshot || 'Address details not available.'}
              <br><br>
-            <strong style="display:block; margin-bottom:4px;">Payment Method:</strong> 
-            ${orderObj.paymentMethod === 'UPI' ? 'UPI' : 'Cash on Delivery'} (${orderObj.paymentStatus})
+            <strong style="display:block; margin-bottom:4px;">Payment Method:</strong>
+            ${
+              orderObj.paymentMethod === 'Cashfree' ? 'Online Payment (Cashfree)' :
+              orderObj.paymentMethod === 'UPI'      ? 'UPI' :
+              orderObj.paymentMethod === 'COD'      ? 'Cash on Delivery' :
+              (orderObj.paymentMethod || 'Online')
+            }
+            &nbsp;<span style="display:inline-block;padding:2px 10px;border-radius:20px;font-size:0.78rem;font-weight:700;
+              background:${orderObj.paymentStatus === 'Paid' ? '#dcfce7' : '#fef9c3'};
+              color:${orderObj.paymentStatus === 'Paid' ? '#15803d' : '#92400e'};">
+              ${orderObj.paymentStatus || 'Pending'}
+            </span>
           </div>
           
           ${cancelBtnHtml ? `<div style="margin-top:24px; text-align:right;">${cancelBtnHtml}</div>` : ''}

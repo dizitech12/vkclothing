@@ -655,10 +655,10 @@ function createOrder(data) {
        syncUserData(data.userId, '[]');
     }
 
-    var orderId = 'ORD' + Date.now();
+    var orderId = data.orderId || ('ORD' + Date.now()); // Use frontend-generated ID if provided
     var date = new Date().toISOString();
-    // Payment status logic
-    var paymentStatus = data.paymentMethod === 'UPI' ? 'Paid' : 'Pending';
+    // Respect paymentStatus sent from client; fallback based on method
+    var paymentStatus = data.paymentStatus || (data.paymentMethod === 'UPI' ? 'Paid' : 'Pending');
 
     // Fetch Address Snapshot
     var aSheet = getOrCreateSheet(ADDRESSES_SHEET, ['AddressID', 'UserID', 'FirstName', 'LastName', 'Phone', 'AddressLine1', 'AddressLine2', 'City', 'State', 'Zip', 'Country']);
