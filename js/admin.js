@@ -357,12 +357,12 @@ function renderOrders() {
       <td><strong>₹${order.total.toLocaleString()}</strong></td>
       <td><span style="font-size:0.8rem; background:#eee; padding:2px 6px; border-radius:4px;">${order.paymentMethod}</span></td>
       <td>
-        <select class="status-select ${order.paymentStatus === 'Paid' ? 'processed' : 'pending'}"
-                data-order-id="${order.orderId}"
-                onchange="handlePaymentStatusChange(this)">
-          <option value="Pending" ${order.paymentStatus === 'Pending' ? 'selected' : ''}>Pending</option>
-          <option value="Paid" ${order.paymentStatus === 'Paid' ? 'selected' : ''}>Paid</option>
-        </select>
+        <span style="
+          display:inline-block; padding:3px 10px; border-radius:20px;
+          font-size:0.78rem; font-weight:700; letter-spacing:0.3px;
+          background:${order.paymentStatus === 'Paid' ? '#dcfce7' : '#fef9c3'};
+          color:${order.paymentStatus === 'Paid' ? '#15803d' : '#92400e'};
+        ">${order.paymentStatus || 'Pending'}</span>
       </td>
       <td>
         <select class="status-select ${order.status.toLowerCase()}"
@@ -895,24 +895,8 @@ async function handleOrderStatusChange(select) {
   }
 }
 
-// ---------- Update Payment Status ----------
-async function handlePaymentStatusChange(select) {
-  const orderId = select.dataset.orderId;
-  const newStatus = select.value;
-  select.disabled = true;
-  try {
-    const res = await API.updatePaymentStatus(orderId, newStatus);
-    if (res.success) {
-      loadOrders(); 
-    } else {
-      alert(res.error || 'Failed to update payment status.');
-      select.disabled = false;
-    }
-  } catch (err) {
-    alert('Failed to update payment status.');
-    select.disabled = false;
-  }
-}
+// Payment status is set automatically by Cashfree verification.
+// No manual override needed — removed.
 
 // ---------- Logout ----------
 function adminLogout() {
