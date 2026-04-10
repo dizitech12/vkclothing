@@ -470,29 +470,35 @@ function deleteProduct(id) {
   try {
     var idStr = id.toString();
     
-    // 1. Delete Product
+    // 1. Delete Product (Single row, fine for deleteRow)
     var sheet = getOrCreateSheet(PRODUCTS_SHEET, ['ID', 'Name', 'Category', 'Price', 'Description', 'ImageURL', 'Sizes', 'Colors']);
     var rows = sheet.getDataRange().getValues();
     for (var i = rows.length - 1; i >= 1; i--) {
       if (rows[i][0].toString() === idStr) {
         sheet.deleteRow(i + 1);
-        break; // IDs unique
+        break;
       }
     }
 
-    // 2. Delete Variants
+    // 2. Delete Variants (Batch)
     var vSheet = getOrCreateSheet(PRODUCT_VARIANTS_SHEET, ['ProductID', 'Size', 'Color', 'Stock']);
-    var vRows = vSheet.getDataRange().getValues();
-    for (var j = vRows.length - 1; j >= 1; j--) {
-      if (vRows[j][0].toString() === idStr) vSheet.deleteRow(j + 1);
+    var vData = vSheet.getDataRange().getValues();
+    var newVData = [vData[0]];
+    for (var j = 1; j < vData.length; j++) {
+      if (vData[j][0].toString() !== idStr) newVData.push(vData[j]);
     }
+    vSheet.clearContents();
+    if (newVData.length > 0) vSheet.getRange(1, 1, newVData.length, vData[0].length).setValues(newVData);
 
-    // 3. Delete Images
+    // 3. Delete Images (Batch)
     var imgSheet = getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL']);
-    var imgRows = imgSheet.getDataRange().getValues();
-    for (var k = imgRows.length - 1; k >= 1; k--) {
-      if (imgRows[k][0].toString() === idStr) imgSheet.deleteRow(k + 1);
+    var imgData = imgSheet.getDataRange().getValues();
+    var newImgData = [imgData[0]];
+    for (var k = 1; k < imgData.length; k++) {
+      if (imgData[k][0].toString() !== idStr) newImgData.push(imgData[k]);
     }
+    imgSheet.clearContents();
+    if (newImgData.length > 0) imgSheet.getRange(1, 1, newImgData.length, imgData[0].length).setValues(newImgData);
 
     clearCache();
     return { success: true };
@@ -530,22 +536,25 @@ function saveProductVariants(productId, variantsArray) {
     var sheet = getOrCreateSheet(PRODUCT_VARIANTS_SHEET, ['ProductID', 'Size', 'Color', 'Stock']);
     var data = sheet.getDataRange().getValues();
     var idStr = productId.toString();
+    var headers = data[0];
     
-    // 1. Delete existing rows
-    for (var i = data.length - 1; i >= 1; i--) {
-      if (data[i][0].toString() === idStr) {
-        sheet.deleteRow(i + 1);
-      }
+    // 1. Keep rows for other products
+    var newData = [headers];
+    for (var i = 1; i < data.length; i++) {
+        if (data[i][0].toString() !== idStr) newData.push(data[i]);
     }
-
-    // 2. Insert new variants
+    
+    // 2. Add new variants
     if (variantsArray && variantsArray.length > 0) {
-      for (var j = 0; j < variantsArray.length; j++) {
-        var v = variantsArray[j];
-        sheet.appendRow([idStr, v.size, v.color, parseInt(v.stock) || 0]);
-      }
+        for (var j = 0; j < variantsArray.length; j++) {
+            var v = variantsArray[j];
+            newData.push([idStr, v.size, v.color, parseInt(v.stock) || 0]);
+        }
     }
-
+    
+    // 3. Batch write back
+    sheet.clearContents();
+    sheet.getRange(1, 1, newData.length, headers.length).setValues(newData);
     clearCache();
     return { success: true };
   } catch (err) {
@@ -580,21 +589,26 @@ function saveProductImages(productId, imagesArray) {
   try {
     var sheet = getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL']);
     var data = sheet.getDataRange().getValues();
+    var idStr = productId.toString();
+    var headers = data[0];
     
-    const targetColors = imagesArray.map(img => img.color.toLowerCase());
-    for (var i = data.length - 1; i >= 1; i--) {
-      if (data[i][0].toString() === productId.toString() && targetColors.includes(data[i][1].toString().toLowerCase())) {
-        sheet.deleteRow(i + 1);
-      }
+    // 1. Keep rows for other products
+    var newData = [headers];
+    for (var i = 1; i < data.length; i++) {
+        if (data[i][0].toString() !== idStr) newData.push(data[i]);
     }
-
+    
+    // 2. Add new images
     if (imagesArray && imagesArray.length > 0) {
-      for (var j = 0; j < imagesArray.length; j++) {
-        var img = imagesArray[j];
-        sheet.appendRow([productId, img.color, img.imageUrl]);
-      }
+        for (var j = 0; j < imagesArray.length; j++) {
+            var img = imagesArray[j];
+            newData.push([idStr, img.color, img.imageUrl]);
+        }
     }
-
+    
+    // 3. Batch write back
+    sheet.clearContents();
+    sheet.getRange(1, 1, newData.length, headers.length).setValues(newData);
     clearCache();
     return { success: true };
   } catch (err) {
