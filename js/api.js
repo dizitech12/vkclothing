@@ -18,14 +18,23 @@ const API = {
       if (token) headers['x-admin-token'] = token;
       const res = await fetch(url, { headers });
       if (!res.ok) {
-        const errorData = await res.text();
-        console.error(`Proxy GET Error Response (${res.status}):`, errorData);
-        throw new Error(`HTTP Error: ${res.status}`);
+        let errorMessage = `HTTP Error: ${res.status}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If not JSON, it's likely a Vercel HTML error page
+          const text = await res.text();
+          if (res.status === 413) errorMessage = "File too large for server. Try a smaller image.";
+          else if (text.includes("Request Entity Too Large")) errorMessage = "File too large.";
+        }
+        throw new Error(errorMessage);
       }
       return await res.json();
     } catch (err) {
       console.error('API GET Error:', err);
-      if (typeof showToast === 'function') showToast('Something went wrong, please try again.', 'error');
+      const msg = err.message || 'Something went wrong.';
+      if (typeof showToast === 'function') showToast(msg, 'error');
       throw err;
     }
   },
@@ -44,32 +53,91 @@ const API = {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const errorData = await res.text();
-        console.error(`Proxy POST Error Response (${res.status}):`, errorData);
-        throw new Error(`HTTP Error: ${res.status}`);
+        let errorMessage = `HTTP Error: ${res.status}`;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          const text = await res.text();
+          if (res.status === 413) errorMessage = "File too large for server.";
+          else if (text.includes("Request Entity Too Large")) errorMessage = "File too large.";
+        }
+        return { success: false, error: errorMessage };
       }
       return await res.json();
     } catch (err) {
       console.error('API POST Error:', err);
-      if (typeof showToast === 'function') showToast('Something went wrong, please try again.', 'error');
-      return { success: false, error: "Server connection failed" };
+      const msg = err.message || 'Server connection failed';
+      if (typeof showToast === 'function') showToast(msg, 'error');
+      return { success: false, error: msg };
     }
   },
 
   // Helper: Convert File object to Base64
-  _toBase64(file) {
+  _toBase64(fileOrBlob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileOrBlob);
       reader.onload = () => resolve(reader.result.replace(/^data:.+;base64,/, ''));
       reader.onerror = error => reject(error);
+    });
+  },
+
+  // Helper: Compress image using Canvas
+  _compressImage(file, maxFilesizeMB = 4) {
+    return new Promise((resolve) => {
+      // If file is already small, don't waste time compressing
+      if (file.size < maxFilesizeMB * 1024 * 1024) {
+        return resolve(file);
+      }
+
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          // Scale down if dimensions are huge (keep aspect ratio)
+          const MAX_DIM = 1920; 
+          if (width > MAX_DIM || height > MAX_DIM) {
+            if (width > height) {
+              height *= MAX_DIM / width;
+              width = MAX_DIM;
+            } else {
+              width *= MAX_DIM / height;
+              height = MAX_DIM;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Convert to JPEG with 0.8 quality
+          canvas.toBlob((blob) => {
+            resolve(blob || file);
+          }, 'image/jpeg', 0.8);
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
     });
   },
 
   // ---------- ImgBB Upload ----------
   async uploadImage(file) {
     try {
-      const base64Image = await this._toBase64(file);
+      // 1. Compress if it's a large file
+      const processedFile = await this._compressImage(file);
+      
+      // 2. Convert to Base64
+      const base64Image = await this._toBase64(processedFile);
+      
       const res = await fetch('/api/upload', {
         method: 'POST',
         headers: {
@@ -77,6 +145,14 @@ const API = {
         },
         body: JSON.stringify({ image: base64Image }),
       });
+
+      if (!res.ok) {
+        if (res.status === 413) throw new Error("Image too large. Please resize it.");
+        const text = await res.text();
+        if (text.includes("Request Entity Too Large")) throw new Error("Image too large.");
+        throw new Error(`Upload failed: ${res.status}`);
+      }
+
       const data = await res.json();
       if (data.success) {
         return { success: true, url: data.data.url };
@@ -84,8 +160,9 @@ const API = {
       return { success: false, error: 'Upload failed' };
     } catch (err) {
       console.error('Image upload failed:', err);
-      if (typeof showToast === 'function') showToast('Something went wrong, please try again.', 'error');
-      return { success: false, error: err.message };
+      const msg = err.message || 'Something went wrong.';
+      if (typeof showToast === 'function') showToast(msg, 'error');
+      return { success: false, error: msg };
     }
   },
 
