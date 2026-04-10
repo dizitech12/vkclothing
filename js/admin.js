@@ -793,29 +793,40 @@ async function handleGalleryImageUpload(event, colorName) {
   if (files.length === 0) return;
 
   const msgEl = document.getElementById('modal-message');
-  msgEl.textContent = `Uploading ${files.length} image(s) for ${colorName}...`;
   msgEl.className = 'form-message success';
   msgEl.style.display = 'block';
 
-  // Upload all in parallel
-  const uploadPromises = files.map(file => API.uploadImage(file));
-  
-  try {
-    const results = await Promise.all(uploadPromises);
-    results.forEach(res => {
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    msgEl.textContent = `Uploading image ${i + 1} of ${files.length} for ${colorName}...`;
+    
+    try {
+      const res = await API.uploadImage(file);
       if (res.success) {
         galleryImages.push({ colorName, imageUrl: res.url });
+        successCount++;
+        // Re-render immediately so user sees progress
+        renderColorGalleries();
+      } else {
+        failCount++;
       }
-    });
-    
-    renderColorGalleries();
-    msgEl.textContent = 'Upload complete.';
-    setTimeout(() => msgEl.style.display = 'none', 2000);
-  } catch (err) {
-    msgEl.textContent = 'Some uploads failed.';
+    } catch (err) {
+      console.error('Upload error:', err);
+      failCount++;
+    }
+  }
+  
+  if (failCount === 0) {
+    msgEl.textContent = `Upload complete. Successfully added ${successCount} images.`;
+  } else {
+    msgEl.textContent = `Upload finished. ${successCount} succeeded, ${failCount} failed.`;
     msgEl.className = 'form-message error';
   }
   
+  setTimeout(() => msgEl.style.display = 'none', 3000);
   event.target.value = '';
 }
 
