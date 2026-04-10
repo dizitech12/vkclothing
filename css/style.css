@@ -1964,3 +1964,32 @@ button { cursor: pointer; }
 #color-name-input { text-align: left !important; direction: ltr !important; unicode-bidi: normal !important; color: #000000 !important; -webkit-text-fill-color: #000000 !important; opacity: 1 !important; transform: none !important; -webkit-transform: none !important; letter-spacing: normal !important; }
 #color-name-input::-webkit-input-placeholder { color: #888888 !important; -webkit-text-fill-color: #888888 !important; opacity: 1 !important; direction: ltr !important; transform: none !important; -webkit-transform: none !important; }
 #color-name-input::placeholder { color: #888888 !important; -webkit-text-fill-color: #888888 !important; opacity: 1 !important; direction: ltr !important; transform: none !important; -webkit-transform: none !important; }
+
+/* ---------- Brand Logo Enhancement ---------- */
+.nav-logo, .logo {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.nav-logo img, .logo img {
+  height: 48px; /* Professional size for header */
+  width: auto;
+  display: block;
+  transition: transform var(--transition);
+}
+
+.nav-logo:hover img, .logo:hover img {
+  transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+  .nav-logo img, .logo img {
+    height: 38px;
+  }
+}
+
