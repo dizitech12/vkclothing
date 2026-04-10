@@ -202,7 +202,7 @@ function doPost(e) {
 function setupSheets() {
   getOrCreateSheet(PRODUCTS_SHEET, ['ID', 'Name', 'Category', 'Price', 'Description', 'ImageURL', 'Sizes', 'Colors']);
   getOrCreateSheet(PRODUCT_VARIANTS_SHEET, ['ProductID', 'Size', 'Color', 'Stock']);
-  getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL']);
+  getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL', 'SortIndex']);
   getOrCreateSheet(ORDERS_SHEET, ['OrderID', 'UserID', 'CustomerPhone', 'ProductID', 'ProductName', 'Size', 'Color', 'Quantity', 'Price', 'Total', 'PaymentMethod', 'PaymentStatus', 'AddressID', 'ShippingSnapshot', 'Status', 'Date']);
   getOrCreateSheet(ADMIN_SHEET, ['Email', 'Password']);
   getOrCreateSheet(USERS_SHEET, ['UserID', 'Phone', 'Password', 'CartData', 'WishlistData', 'CreatedDate']);
@@ -568,7 +568,7 @@ function getProductImages() {
   var cached = cache.get(IMAGES_CACHE_KEY);
   if (cached) return JSON.parse(cached);
 
-  var sheet = getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL']);
+  var sheet = getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL', 'SortIndex']);
   var data = sheet.getDataRange().getValues();
   var images = [];
 
@@ -577,9 +577,17 @@ function getProductImages() {
     images.push({
       productId: data[i][0].toString(),
       color: data[i][1].toString().toLowerCase(),
-      imageUrl: data[i][2].toString()
+      imageUrl: data[i][2].toString(),
+      sortIndex: parseInt(data[i][3]) || 0
     });
   }
+
+  // Sort by product ID, then color, then sortIndex
+  images.sort((a,b) => {
+    if(a.productId !== b.productId) return a.productId.localeCompare(b.productId);
+    if(a.color !== b.color) return a.color.localeCompare(b.color);
+    return a.sortIndex - b.sortIndex;
+  });
 
   try { cache.put(IMAGES_CACHE_KEY, JSON.stringify(images), CACHE_DURATION); } catch (e) {}
   return images;
@@ -587,7 +595,7 @@ function getProductImages() {
 
 function saveProductImages(productId, imagesArray) {
   try {
-    var sheet = getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL']);
+    var sheet = getOrCreateSheet(PRODUCT_IMAGES_SHEET, ['ProductID', 'Color', 'ImageURL', 'SortIndex']);
     var data = sheet.getDataRange().getValues();
     var idStr = productId.toString();
     var headers = data[0];
@@ -598,11 +606,11 @@ function saveProductImages(productId, imagesArray) {
         if (data[i][0].toString() !== idStr) newData.push(data[i]);
     }
     
-    // 2. Add new images
+    // 2. Add new images with sort index
     if (imagesArray && imagesArray.length > 0) {
         for (var j = 0; j < imagesArray.length; j++) {
             var img = imagesArray[j];
-            newData.push([idStr, img.color, img.imageUrl]);
+            newData.push([idStr, img.color, img.imageUrl, parseInt(img.sortIndex) || 0]);
         }
     }
     

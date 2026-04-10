@@ -526,8 +526,7 @@ function openProductModal() {
 
   document.getElementById('variant-stock-container').style.display = 'none';
   document.getElementById('variant-stock-container').innerHTML = '';
-  updateGalleryColorSelect();
-  renderGalleryPreviews();
+  renderColorGalleries();
   
   // Clear color picker fields
   document.getElementById('color-name-input').value = '';
@@ -567,8 +566,7 @@ function editProduct(id) {
 
   // Pre-generate grid
   generateVariantGrid();
-  updateGalleryColorSelect();
-  renderGalleryPreviews();
+  renderColorGalleries();
   renderColorPreviews();
 
   resetModalMessage('Update Product');
@@ -627,7 +625,8 @@ function removeColor(index) {
     colorsInput.value = currentColors.join(',');
     renderColorPreviews();
     // Auto-update variants/gallery dropdowns if colors changed
-    updateGalleryColorSelect();
+    renderColorPreviews();
+    renderColorGalleries();
     generateVariantGrid();
   }
 }
@@ -661,7 +660,7 @@ function generateVariantGrid() {
   const colorsInput = document.getElementById('product-colors').value.trim();
   const container = document.getElementById('variant-stock-container');
   
-  updateGalleryColorSelect(); // Keep gallery select synced
+  renderColorGalleries(); // Keep galleries synced
 
   if (!sizesInput || !colorsInput) {
     container.innerHTML = '<p style="font-size:0.8rem;color:#777;">Please enter at least one size and one color.</p>';
@@ -708,24 +707,120 @@ function generateVariantGrid() {
     });
   });
   html += `</table>`;
-  container.innerHTML = html;
   container.style.display = 'block';
 }
 
-function updateGalleryColorSelect() {
+// ---------- Color-Specific Tooling ----------
+function getDefinedColors() {
   const colorsInput = document.getElementById('product-colors').value.trim();
-  const select = document.getElementById('gallery-color-select');
-  
-  const colors = colorsInput.split(',').map(c => {
+  if (!colorsInput) return [];
+  return colorsInput.split(',').map(c => {
     const parts = c.split(':');
     return parts[0].trim();
   }).filter(Boolean);
+}
 
-  let options = '<option value="">Select color first...</option>';
-  colors.forEach(c => {
-    options += `<option value="${c}">${c}</option>`;
-  });
-  select.innerHTML = options;
+// ---------- Reorderable Independent Color Galleries ----------
+function renderColorGalleries() {
+  const container = document.getElementById('color-galleries-container');
+  const colors = getDefinedColors();
+  
+  if (colors.length === 0) {
+    container.innerHTML = `<p style="font-size:0.8rem; color:#999; font-style:italic; padding:12px; border:1px dashed #ddd; border-radius:4px; text-align:center;">
+      Please define colors above to see independent upload sections.
+    </p>`;
+    return;
+  }
+
+  container.innerHTML = colors.map(color => {
+    // Filter images already added for this color
+    const colorImages = galleryImages.filter(img => img.colorName.toLowerCase() === color.toLowerCase());
+    
+    return `
+      <div class="color-gallery-section" style="margin-bottom: 20px; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fff;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h4 style="font-size:0.9rem; margin:0; display:flex; align-items:center; gap:8px;">
+            <span style="width:12px; height:12px; border-radius:50%; background:${getColorHex(color)}; border:1px solid #ccc;"></span>
+            ${color} Gallery
+          </h4>
+          <button type="button" class="btn btn-sm" style="background:#000; color:#fff; font-size:0.75rem;" onclick="document.getElementById('upload-${color}').click()">+ Upload Photos</button>
+          <input type="file" id="upload-${color}" multiple accept="image/*" style="display:none;" onchange="handleGalleryImageUpload(event, '${color}')">
+        </div>
+        
+        <div id="gallery-list-${color}" class="sortable-gallery" data-color="${color}" style="display:flex; gap:10px; flex-wrap:wrap; min-height:60px; padding:8px; background:#fafafa; border-radius:4px; border:1px dashed #eee;">
+          ${colorImages.length === 0 ? '<p style="font-size:0.75rem; color:#bbb; width:100%; text-align:center; margin:15px 0;">No images for this color yet.</p>' : ''}
+          ${colorImages.map((img, idx) => `
+            <div class="gallery-item" data-url="${img.imageUrl}" style="position:relative; width:80px; height:80px; cursor:grab;">
+              <span style="position:absolute; top:-5px; right:-5px; background:rgba(255,0,0,0.8); color:white; cursor:pointer; width:18px; height:18px; font-size:11px; text-align:center; line-height:18px; border-radius:50%; z-index:10;" onclick="removeGalleryImageVal('${img.imageUrl}')">✕</span>
+              <img src="${img.imageUrl}" style="width:100%; height:100%; object-fit:cover; border:1px solid #ddd; border-radius:4px; pointer-events:none;">
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Initialize Sortable for each gallery
+  setTimeout(() => {
+    colors.forEach(color => {
+      const el = document.getElementById(`gallery-list-${color}`);
+      if (el) {
+        new Sortable(el, {
+          animation: 150,
+          ghostClass: 'sortable-ghost',
+          dragClass: 'sortable-drag'
+        });
+      }
+    });
+  }, 100);
+}
+
+function getColorHex(colorName) {
+  const colorsInput = document.getElementById('product-colors').value.trim();
+  const pairs = colorsInput.split(',');
+  for (const pair of pairs) {
+    const parts = pair.split(':');
+    if (parts[0].trim().toLowerCase() === colorName.toLowerCase()) {
+      return parts[1] ? parts[1].trim() : '#000000';
+    }
+  }
+  return '#000000';
+}
+
+async function handleGalleryImageUpload(event, colorName) {
+  const files = Array.from(event.target.files);
+  if (files.length === 0) return;
+
+  const msgEl = document.getElementById('modal-message');
+  msgEl.textContent = `Uploading ${files.length} image(s) for ${colorName}...`;
+  msgEl.className = 'form-message success';
+  msgEl.style.display = 'block';
+
+  // Upload all in parallel
+  const uploadPromises = files.map(file => API.uploadImage(file));
+  
+  try {
+    const results = await Promise.all(uploadPromises);
+    results.forEach(res => {
+      if (res.success) {
+        galleryImages.push({ colorName, imageUrl: res.url });
+      }
+    });
+    
+    renderColorGalleries();
+    msgEl.textContent = 'Upload complete.';
+    setTimeout(() => msgEl.style.display = 'none', 2000);
+  } catch (err) {
+    msgEl.textContent = 'Some uploads failed.';
+    msgEl.className = 'form-message error';
+  }
+  
+  event.target.value = '';
+}
+
+function removeGalleryImageVal(url) {
+  galleryImages = galleryImages.filter(img => img.imageUrl !== url);
+  renderColorGalleries();
 }
 
 // ---------- Image Uploads (ImgBB) ----------
@@ -759,57 +854,6 @@ async function handleImageSelect(event) {
     msgEl.textContent = 'Main image upload failed.';
     msgEl.className = 'form-message error';
   }
-}
-
-// Gallery Uploads
-async function handleGalleryImageUpload(event) {
-  const colorSelect = document.getElementById('gallery-color-select');
-  const colorName = colorSelect.value;
-  if (!colorName) {
-    alert("Please select a color for this image first.");
-    event.target.value = '';
-    return;
-  }
-
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const msgEl = document.getElementById('modal-message');
-  msgEl.textContent = `Uploading image for ${colorName}...`;
-  msgEl.className = 'form-message success';
-  msgEl.style.display = 'block';
-
-  const result = await API.uploadImage(file);
-  if (result.success) {
-    galleryImages.push({ colorName, imageUrl: result.url });
-    renderGalleryPreviews();
-    msgEl.textContent = 'Gallery image added.';
-    setTimeout(() => msgEl.style.display = 'none', 2000);
-  } else {
-    msgEl.textContent = 'Gallery image upload failed.';
-    msgEl.className = 'form-message error';
-  }
-  event.target.value = '';
-}
-
-function renderGalleryPreviews() {
-  const container = document.getElementById('gallery-preview-container');
-  if (galleryImages.length === 0) {
-    container.innerHTML = '<p style="font-size:0.75rem;color:#999;font-style:italic;">No gallery images yet.</p>';
-    return;
-  }
-  container.innerHTML = galleryImages.map((img, idx) => `
-    <div style="position:relative; flex-shrink:0;">
-      <span style="position:absolute;top:0;right:0;background:red;color:white;cursor:pointer;width:16px;height:16px;font-size:10px;text-align:center;line-height:16px;border-radius:50%;" onclick="removeGalleryImage(${idx})">✕</span>
-      <img src="${img.imageUrl}" style="width:50px;height:50px;object-fit:cover;border:1px solid #ddd;border-radius:4px;">
-      <div style="font-size:0.6rem;text-align:center;background:#eee;padding:2px;">${img.colorName}</div>
-    </div>
-  `).join('');
-}
-
-function removeGalleryImage(index) {
-  galleryImages.splice(index, 1);
-  renderGalleryPreviews();
 }
 
 // ---------- Save Product Flow ----------
@@ -893,11 +937,24 @@ async function handleSaveProduct(e) {
     const variantRes = await API.saveProductVariants(finalProductId, selectedVariants);
     if (!variantRes.success) throw new Error(variantRes.error || 'Failed to save variants');
 
-    // 3. Save Images
+    // 3. Save Images (Read Order from DOM)
     saveBtn.textContent = 'Saving Images...';
-    // Format required by API: { color: ..., imageUrl: ... }
-    // Note: galleryImages uses `colorName` internally; backend reads `color` — map explicitly
-    const finalGallery = galleryImages.map(img => ({ color: img.colorName, imageUrl: img.imageUrl, productId: finalProductId }));
+    const finalGallery = [];
+    
+    // Iterate through color galleries to pick up the sorted order
+    const galleryContainers = document.querySelectorAll('.sortable-gallery');
+    galleryContainers.forEach(container => {
+      const color = container.dataset.color;
+      const items = container.querySelectorAll('.gallery-item');
+      items.forEach((item, index) => {
+        finalGallery.push({
+          color: color,
+          imageUrl: item.dataset.url,
+          sortIndex: index
+        });
+      });
+    });
+
     const imageRes = await API.saveProductImages(finalProductId, finalGallery);
     if (!imageRes.success) throw new Error(imageRes.error || 'Failed to save gallery images');
 
