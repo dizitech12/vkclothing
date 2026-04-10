@@ -707,6 +707,7 @@ function generateVariantGrid() {
     });
   });
   html += `</table>`;
+  container.innerHTML = html;
   container.style.display = 'block';
 }
 
