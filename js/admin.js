@@ -28,65 +28,111 @@ let uploadedImageUrl = ''; // Main fallback image
 let currentVariantGrid = []; // Array of {size, colorName, stock}
 let galleryImages = []; // Array of {colorName, imageUrl}
 let allOrders = []; // Array of fetched orders for filtering
+let ordersPromise = null; // Step 2: Background preloader for orders
+let analyticsPromise = null; // Step 2: Background preloader for analytics
+let isAnalyticsLoaded = false; // Flag to prevent multiple chart reloads
 
 // ---------- Init ----------
 document.addEventListener('DOMContentLoaded', () => {
   if (!window.location.pathname.endsWith('dashboard.html')) return;
-  loadAllData();
+  initDashboard(); // Optimized Step 1 & 2
   document.getElementById('product-form').addEventListener('submit', handleSaveProduct);
 });
 
+async function initDashboard() {
+  // Step 1: Load Products immediately (Priority 1)
+  await loadProducts();
+  
+  // Step 2: Start background preloading for Orders and Analytics simultaneously
+  preloadBackgroundData();
+}
+
+function preloadBackgroundData() {
+  console.log('Admin: Starting background preloading...');
+  // These fire in parallel without blocking the UI
+  if (!ordersPromise) {
+    ordersPromise = fetchOrdersData();
+  }
+  if (!analyticsPromise) {
+    analyticsPromise = fetchAnalyticsData();
+  }
+}
+
+// ---------- Analytics Helpers ----------
+async function fetchAnalyticsData() {
+  try {
+    const [summary, weekly, daily, growth] = await Promise.all([
+      API.getAnalyticsSummary(),
+      API.getWeeklySales(),
+      API.getOrdersPerDay(),
+      API.getCustomerGrowth()
+    ]);
+    return { summary, weekly, daily, growth };
+  } catch (err) {
+    console.error('Background analytics preload failed:', err);
+    return null;
+  }
+}
+
 // ---------- Analytics ----------
 async function loadAnalyticsDashboard(refresh = false) {
+  if (isAnalyticsLoaded && !refresh) return;
+
   const content = document.getElementById('analytics-content');
   const loader = document.getElementById('analytics-loading');
 
-  // Show loading state
-  if (refresh && content && loader) {
+  // Show loading state if data not ready
+  if (content && loader) {
     content.style.display = 'none';
     loader.style.display = 'block';
   }
 
-  // Load summary cards
   try {
-    const data = await API.getAnalyticsSummary(refresh);
-    if (data.success) {
-      document.getElementById('stat-total-orders').textContent = data.totalOrders.toLocaleString();
-      document.getElementById('stat-total-revenue').textContent = '₹' + data.totalRevenue.toLocaleString();
-      document.getElementById('stat-total-customers').textContent = data.totalCustomers.toLocaleString();
-      document.getElementById('stat-total-products').textContent = data.totalProducts.toLocaleString();
-      document.getElementById('stat-best-selling').textContent = data.bestProduct || '-';
-      document.getElementById('stat-best-selling').title = data.bestProduct || 'No sales yet';
-    } else {
-      console.error('Analytics error:', data.error);
+    let data;
+    if (refresh || !analyticsPromise) {
+      analyticsPromise = fetchAnalyticsData();
+    }
+    data = await analyticsPromise;
+
+    if (data) {
+      // Summary cards
+      const s = data.summary;
+      if (s && s.success) {
+        document.getElementById('stat-total-orders').textContent = s.totalOrders.toLocaleString();
+        document.getElementById('stat-total-revenue').textContent = '₹' + s.totalRevenue.toLocaleString();
+        document.getElementById('stat-total-customers').textContent = s.totalCustomers.toLocaleString();
+        document.getElementById('stat-total-products').textContent = s.totalProducts.toLocaleString();
+        document.getElementById('stat-best-selling').textContent = s.bestProduct || '-';
+        document.getElementById('stat-best-selling').title = s.bestProduct || 'No sales yet';
+      }
+
+      // Render Charts
+      renderWeeklySalesChart(data.weekly);
+      renderOrdersPerDayChart(data.daily);
+      renderCustomerGrowthChart(data.growth);
+      
+      isAnalyticsLoaded = true;
     }
   } catch (err) {
-    console.error('Failed to load analytics:', err);
+    console.error('Failed to load analytics dashboard:', err);
   }
 
-  // Load charts
-  await loadWeeklySalesChart(refresh);
-  await loadOrdersPerDayChart(refresh);
-  await loadCustomerGrowthChart(refresh);
-
   // Hide loading state
-  if (refresh && content && loader) {
+  if (content && loader) {
     content.style.display = 'block';
     loader.style.display = 'none';
-    if (typeof showToast === 'function') showToast('Analytics data refreshed!', 'success');
+    if (refresh && typeof showToast === 'function') showToast('Analytics data refreshed!', 'success');
   }
 }
 
 // ---------- Weekly Sales Chart ----------
 let weeklySalesChartInstance = null;
 
-async function loadWeeklySalesChart(refresh = false) {
+async function renderWeeklySalesChart(data) {
   try {
-    const data = await API.getWeeklySales(refresh);
-    if (!data.success) return;
+    if (!data || !data.success) return;
 
     const ctx = document.getElementById('weekly-sales-chart').getContext('2d');
-
     if (weeklySalesChartInstance) {
       weeklySalesChartInstance.destroy();
     }
@@ -125,20 +171,22 @@ async function loadWeeklySalesChart(refresh = false) {
       }
     });
   } catch (err) {
-    console.error('Failed to load weekly sales chart:', err);
+    console.error('Failed to render weekly sales chart:', err);
   }
+}
+async function loadWeeklySalesChart(refresh = false) { 
+  const data = await API.getWeeklySales(refresh);
+  renderWeeklySalesChart(data);
 }
 
 // ---------- Orders per Day Chart ----------
 let ordersPerDayChartInstance = null;
 
-async function loadOrdersPerDayChart(refresh = false) {
+async function renderOrdersPerDayChart(data) {
   try {
-    const data = await API.getOrdersPerDay(refresh);
-    if (!data.success) return;
+    if (!data || !data.success) return;
 
     const ctx = document.getElementById('orders-per-day-chart').getContext('2d');
-
     if (ordersPerDayChartInstance) {
       ordersPerDayChartInstance.destroy();
     }
@@ -174,20 +222,22 @@ async function loadOrdersPerDayChart(refresh = false) {
       }
     });
   } catch (err) {
-    console.error('Failed to load orders per day chart:', err);
+    console.error('Failed to render orders per day chart:', err);
   }
+}
+async function loadOrdersPerDayChart(refresh = false) {
+  const data = await API.getOrdersPerDay(refresh);
+  renderOrdersPerDayChart(data);
 }
 
 // ---------- Customer Growth Chart ----------
 let customerGrowthChartInstance = null;
 
-async function loadCustomerGrowthChart(refresh = false) {
+async function renderCustomerGrowthChart(data) {
   try {
-    const data = await API.getCustomerGrowth(refresh);
-    if (!data.success) return;
+    if (!data || !data.success) return;
 
     const ctx = document.getElementById('customer-growth-chart').getContext('2d');
-
     if (customerGrowthChartInstance) {
       customerGrowthChartInstance.destroy();
     }
@@ -224,8 +274,12 @@ async function loadCustomerGrowthChart(refresh = false) {
       }
     });
   } catch (err) {
-    console.error('Failed to load customer growth chart:', err);
+    console.error('Failed to render customer growth chart:', err);
   }
+}
+async function loadCustomerGrowthChart(refresh = false) {
+  const data = await API.getCustomerGrowth(refresh);
+  renderCustomerGrowthChart(data);
 }
 
 // ---------- Tab Switching ----------
@@ -245,8 +299,10 @@ function switchTab(tab) {
 }
 
 // ---------- Data Loading ----------
-async function loadAllData() {
+// Step 1: Render products list immediately
+async function loadProducts() {
   const tbody = document.getElementById('products-table-body');
+  if (!tbody) return;
   tbody.innerHTML = '<tr><td colspan="7"><div class="loading-spinner"></div></td></tr>';
 
   try {
@@ -267,6 +323,7 @@ async function loadAllData() {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--color-error);">Failed to load products.</td></tr>';
   }
 }
+async function loadAllData() { await loadProducts(); } // Legacy wrapper
 
 function renderProductsTable() {
   const tbody = document.getElementById('products-table-body');
@@ -306,16 +363,38 @@ function renderProductsTable() {
   }).join('');
 }
 
-// ---------- Orders ----------
-async function loadOrders() {
-  const tbody = document.getElementById('orders-table-body');
-  tbody.innerHTML = '<tr><td colspan="10"><div class="loading-spinner"></div></td></tr>';
+// ---------- Orders Helpers ----------
+async function fetchOrdersData() {
   try {
     allOrders = await API.getOrders();
+    return allOrders;
+  } catch (err) {
+    console.error('Background orders preload failed:', err);
+    return [];
+  }
+}
+
+// ---------- Orders ----------
+async function loadOrders(refresh = false) {
+  const tbody = document.getElementById('orders-table-body');
+  
+  // If we already have data and no refresh, just render
+  if (allOrders.length > 0 && !refresh) {
+    renderOrders();
+    return;
+  }
+
+  tbody.innerHTML = '<tr><td colspan="10"><div class="loading-spinner"></div></td></tr>';
+  
+  try {
+    if (refresh || !ordersPromise) {
+      ordersPromise = fetchOrdersData();
+    }
+    await ordersPromise;
     renderOrders();
   } catch (err) {
     console.error('Orders load error:', err);
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--color-error);">Failed to load orders. <button class="btn btn-outline" onclick="loadOrders()">Retry</button></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--color-error);">Failed to load orders. <button class="btn btn-outline" onclick="loadOrders(true)">Retry</button></td></tr>';
     if (typeof showToast === 'function') showToast('Failed to load orders.', 'error');
   }
 }
