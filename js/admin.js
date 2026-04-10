@@ -751,9 +751,14 @@ function renderColorGalleries() {
         <div id="gallery-list-${color}" class="sortable-gallery" data-color="${color}" style="display:flex; gap:10px; flex-wrap:wrap; min-height:60px; padding:8px; background:#fafafa; border-radius:4px; border:1px dashed #eee;">
           ${colorImages.length === 0 ? '<p style="font-size:0.75rem; color:#bbb; width:100%; text-align:center; margin:15px 0;">No images for this color yet.</p>' : ''}
           ${colorImages.map((img, idx) => `
-            <div class="gallery-item" data-url="${img.imageUrl}" style="position:relative; width:80px; height:80px; cursor:grab;">
-              <span style="position:absolute; top:-5px; right:-5px; background:rgba(255,0,0,0.8); color:white; cursor:pointer; width:18px; height:18px; font-size:11px; text-align:center; line-height:18px; border-radius:50%; z-index:10;" onclick="removeGalleryImageVal('${img.imageUrl}')">✕</span>
+            <div class="gallery-item" data-url="${img.imageUrl}" style="position:relative; width:80px; height:80px; cursor:grab; opacity: ${img.isUploading ? '0.6' : '1'}">
+              <span style="position:absolute; top:-5px; right:-5px; background:rgba(255,0,0,0.8); color:white; cursor:pointer; width:18px; height:18px; font-size:11px; text-align:center; line-height:18px; border-radius:50%; z-index:10; ${img.isUploading ? 'display:none' : ''}" onclick="removeGalleryImageVal('${img.imageUrl}')">✕</span>
               <img src="${img.imageUrl}" style="width:100%; height:100%; object-fit:cover; border:1px solid #ddd; border-radius:4px; pointer-events:none;">
+              ${img.isUploading ? `
+                <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.4);">
+                  <div class="loading-spinner" style="width:20px; height:20px;"></div>
+                </div>
+              ` : ''}
             </div>
           `).join('')}
         </div>
@@ -796,33 +801,51 @@ async function handleGalleryImageUpload(event, colorName) {
   msgEl.className = 'form-message success';
   msgEl.style.display = 'block';
 
+  // 1. Create temporary entries with local URLs for instant feedback
+  const tempEntries = files.map(file => {
+    const localUrl = URL.createObjectURL(file);
+    return { colorName, imageUrl: localUrl, isUploading: true, fileObject: file };
+  });
+  
+  galleryImages.push(...tempEntries);
+  renderColorGalleries();
+
   let successCount = 0;
   let failCount = 0;
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    msgEl.textContent = `Uploading image ${i + 1} of ${files.length} for ${colorName}...`;
+  // 2. Upload one by one
+  for (const entry of tempEntries) {
+    const idx = galleryImages.indexOf(entry);
+    if (idx === -1) continue; // Safety check
+
+    msgEl.textContent = `Uploading ${successCount + failCount + 1} of ${files.length} for ${colorName}...`;
     
     try {
-      const res = await API.uploadImage(file);
+      const res = await API.uploadImage(entry.fileObject);
       if (res.success) {
-        galleryImages.push({ colorName, imageUrl: res.url });
+        galleryImages[idx].imageUrl = res.url;
+        galleryImages[idx].isUploading = false;
         successCount++;
-        // Re-render immediately so user sees progress
-        renderColorGalleries();
       } else {
+        galleryImages.splice(idx, 1); // Remove failed
         failCount++;
       }
     } catch (err) {
       console.error('Upload error:', err);
+      galleryImages.splice(idx, 1);
       failCount++;
     }
+    
+    // Clean up memory and re-render
+    URL.revokeObjectURL(entry.imageUrl);
+    delete entry.fileObject;
+    renderColorGalleries();
   }
   
   if (failCount === 0) {
-    msgEl.textContent = `Upload complete. Successfully added ${successCount} images.`;
+    msgEl.textContent = `Upload complete. Added ${successCount} images.`;
   } else {
-    msgEl.textContent = `Upload finished. ${successCount} succeeded, ${failCount} failed.`;
+    msgEl.textContent = `Finished. ${successCount} succeeded, ${failCount} failed.`;
     msgEl.className = 'form-message error';
   }
   
