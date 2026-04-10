@@ -207,7 +207,7 @@ const Auth = {
   requireAuth(returnUrl) {
     if (!this.isLoggedIn()) {
       sessionStorage.setItem('vk_auth_return_url', returnUrl || window.location.pathname);
-      window.location.href = 'login.html';
+      window.location.replace('login.html');
       return false;
     }
     return true;

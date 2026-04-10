@@ -17,6 +17,10 @@ function getCheckoutItems() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!window.Auth || !Auth.requireAuth('checkout.html')) return;
+  
+  // Show content only after auth check passes
+  const content = document.getElementById('checkout-main-content');
+  if (content) content.style.display = 'block';
 
   const cart = getCheckoutItems();
   if (cart.length === 0) {
